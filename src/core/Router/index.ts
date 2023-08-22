@@ -1,3 +1,4 @@
+import { BarbersController } from "@api/modules";
 import { Application } from "express";
 
 class Router {
@@ -10,16 +11,16 @@ class Router {
 	}
 
 	initRoutes(): void {
-		// this.initUsersRoutes();
+		this.initBarbersRoutes();
 		// this.initAuthRoutes();
 		// this.initNotesRoutes();
 		// this.initChecklistsRoutes();
 	}
 
-	// initUsersRoutes(): void {
-	// 	const usersController = new UsersController();
-	// 	this.app.use(`${this.apiPrefix}`, usersController.router);
-	// }
+	initBarbersRoutes(): void {
+		const barbersController = new BarbersController();
+		this.app.use(`${this.apiPrefix}`, barbersController.router);
+	}
 
 	// initAuthRoutes(): void {
 	// 	const authController = new AuthController();
