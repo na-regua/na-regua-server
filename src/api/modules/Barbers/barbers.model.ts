@@ -6,11 +6,11 @@ interface IBarberMethods {
 	findByToken(token: string): Promise<IBarberDocument>;
 }
 
-interface IBarberModel extends Model<IBarberDocument, {}, IBarberMethods> {}
+interface IBarbersModel extends Model<IBarberDocument, {}, IBarberMethods> {}
 
-const BarbersModel: IBarberModel = model<IBarberDocument, IBarberModel>(
+const BarbersModel: IBarbersModel = model<IBarberDocument, IBarbersModel>(
 	"Barbers",
 	BarbersSchema
 );
 
-export { BarbersModel, IBarberModel };
+export { BarbersModel, IBarbersModel };
