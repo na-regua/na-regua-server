@@ -1,5 +1,5 @@
 import { Model, model } from "mongoose";
-import { BarbersSchema, IBarberDocument } from "./barbers.schema";
+import { BarbersSchema, IBarberDocument } from "./Barbers.schema";
 
 interface IBarberMethods {
 	findByCredentials(phone: string): Promise<IBarberDocument>;

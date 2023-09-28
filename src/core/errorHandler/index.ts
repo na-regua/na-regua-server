@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { HttpException } from "../ErrorException";
+import { HttpException } from "../HttpException";
 
 function errorHandler(err: any, res: Response): Response {
 	if (err instanceof HttpException) {

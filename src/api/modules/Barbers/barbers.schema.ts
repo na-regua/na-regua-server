@@ -1,34 +1,25 @@
-import { hashSync } from "bcryptjs";
-import { InferSchemaType, Schema, Document } from "mongoose";
+import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
+import { Document, InferSchemaType, Schema } from "mongoose";
 
 const uniqueValidator = require("mongoose-unique-validator");
 
 const BarbersSchema = new Schema(
 	{
-		name: {
-			type: String,
+		user: {
+			type: Schema.Types.ObjectId,
+			ref: "Users",
 			required: true,
-		},
-		phone: {
-			type: String,
-			required: true,
-			unique: true,
-		},
-		password: {
-			type: String,
-			required: true,
-			minLength: 6,
 		},
 		cep: {
 			type: String,
 			required: true,
+			match: [/^\d{5}-\d{3}$/, SYSTEM_ERRORS.INVALID_CEP],
 		},
 		city: {
 			type: String,
 			required: true,
 		},
-		code: String,
-		regionCode: {
+		uf: {
 			type: String,
 			required: true,
 		},
@@ -40,9 +31,12 @@ const BarbersSchema = new Schema(
 			type: String,
 			required: true,
 		},
-		number: Number,
+		number: {
+			type: Number,
+			required: true,
+		},
 		complement: String,
-		accessToken: String,
+		code: { type: String, unique: true },
 		avatar: {
 			type: Buffer,
 			required: true,
@@ -61,15 +55,15 @@ const BarbersSchema = new Schema(
 			type: [Schema.Types.ObjectId],
 			ref: "Custommers",
 		},
-		status: {
+		profileStatus: {
 			type: String,
-			enum: ["pre", "completed", ""],
-			required: true,
+			enum: ["pre", "complete"],
+			default: "pre",
 		},
 	},
 	{
 		versionKey: false,
-		collection: "Users",
+		collection: "Barbers",
 		timestamps: true,
 	}
 );
@@ -80,18 +74,8 @@ interface IBarberDocument extends TBarber, Document {}
 
 BarbersSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 
-BarbersSchema.pre("save", async function (next) {
-	const barber: IBarberDocument = this;
-
-	if (barber.isModified("password")) {
-		barber.password = hashSync(barber.password, 12);
-	}
-
-	next();
-});
-
 BarbersSchema.methods.toJSON = function (): TBarber {
-	const { password, accessToken, ...barber } = this.toObject();
+	const barber = this.toObject();
 
 	return barber;
 };
