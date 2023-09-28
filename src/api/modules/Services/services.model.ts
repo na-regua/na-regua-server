@@ -1,5 +1,5 @@
 import { Model, model } from "mongoose";
-import { IServiceDocument, ServicesSchema } from "./services.schema";
+import { IServiceDocument, ServicesSchema } from "./Services.schema";
 
 interface IServiceMethods {}
 

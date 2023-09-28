@@ -1,5 +1,5 @@
 import { Model, model } from "mongoose";
-import { IWorkerDocument, WorkersSchema } from "./workers.schema";
+import { IWorkerDocument, WorkersSchema } from "./Workers.schema";
 
 interface IWorkerMethods {}
 

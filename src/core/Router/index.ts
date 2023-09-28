@@ -13,8 +13,6 @@ class Router {
 	initRoutes(): void {
 		this.initBarbersRoutes();
 		// this.initAuthRoutes();
-		// this.initNotesRoutes();
-		// this.initChecklistsRoutes();
 	}
 
 	initBarbersRoutes(): void {
@@ -25,16 +23,6 @@ class Router {
 	// initAuthRoutes(): void {
 	// 	const authController = new AuthController();
 	// 	this.app.use(`${this.apiPrefix}`, authController.router);
-	// }
-
-	// initNotesRoutes(): void {
-	// 	const notesController = new NotesController();
-	// 	this.app.use(`${this.apiPrefix}`, notesController.router);
-	// }
-
-	// initChecklistsRoutes(): void {
-	// 	const checklistsController = new ChecklistsController();
-	// 	this.app.use(`${this.apiPrefix}`, checklistsController.router);
 	// }
 }
 

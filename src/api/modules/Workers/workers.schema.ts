@@ -2,24 +2,15 @@ import mongoose, { InferSchemaType } from "mongoose";
 
 const WorkersSchema = new mongoose.Schema(
 	{
-		barberId: {
+		barber: {
 			type: mongoose.Schema.Types.ObjectId,
-		},
-		name: {
-			type: String,
+			ref: "Barbers",
 			required: true,
 		},
-		phone: {
-			type: String,
+		user: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "Users",
 			required: true,
-		},
-		password: {
-			type: String,
-		},
-		avatar: {
-			type: Buffer,
-			required: true,
-			content: String,
 		},
 	},
 	{
