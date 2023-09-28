@@ -1,5 +1,5 @@
 import { BaseController } from "@core/BaseController";
-import barbersRepository from "./Barbers.repository";
+import BarbersRepository from "./Barbers.repository";
 import { multerUpload } from "@config/multer";
 
 export class BarbersController extends BaseController {
@@ -12,18 +12,14 @@ export class BarbersController extends BaseController {
 	}
 
 	defineRoutes(): void {
-		this.router.get(this.routePrefix, barbersRepository.index);
+		this.router.get(this.routePrefix, BarbersRepository.index);
 		this.router.post(
 			this.routePrefix + "/pre-signin",
 			multerUpload.array("files"),
-			barbersRepository.preSignIn
+			BarbersRepository.preSignIn
 		);
-		this.router.post(this.routePrefix + "/sms/send", barbersRepository.smsTest);
-		this.router.post(
-			this.routePrefix + "/sms/verify",
-			barbersRepository.verifySmsTest
-		);
+		this.router.post(this.routePrefix + "/sms/send", BarbersRepository.smsTest);
 
-		this.router.delete(`${this.routePrefix}/:id`, barbersRepository.delete);
+		this.router.delete(`${this.routePrefix}/:id`, BarbersRepository.delete);
 	}
 }

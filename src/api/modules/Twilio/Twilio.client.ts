@@ -1,7 +1,6 @@
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
-import { errorHandler } from "@core/errorHandler";
-import { Response } from "express";
 import twilio from "twilio";
+import { VerificationCheckInstance } from "twilio/lib/rest/verify/v2/service/verificationCheck";
 
 const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SERVICE_SID } =
 	process.env;
@@ -28,7 +27,10 @@ class TwilioRepository {
 		}
 	}
 
-	async verifyOTP(code: string, phone: string) {
+	async verifyOTP(
+		code: string,
+		phone: string
+	): Promise<VerificationCheckInstance | Error> {
 		try {
 			if (!TWILIO_SERVICE_SID) {
 				throw new Error(SYSTEM_ERRORS.UNAVAILABLE_MESSAGE_SERVICE);
@@ -42,7 +44,7 @@ class TwilioRepository {
 				});
 
 			return OTPResponse;
-		} catch (error) {
+		} catch (error: any) {
 			return error;
 		}
 	}

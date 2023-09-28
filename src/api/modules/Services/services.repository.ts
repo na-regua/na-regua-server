@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { TService } from "./Services.schema";
 import { errorHandler } from "@core/errorHandler";
 import { ServicesModel } from "./Services.model";
-import { HttpException } from "@core/ErrorException";
+import { HttpException } from "@core/HttpException";
 
 class ServicesRepository {
 	async index(req: Request, res: Response): Promise<Response<TService[]>> {

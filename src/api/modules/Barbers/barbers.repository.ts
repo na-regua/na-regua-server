@@ -1,13 +1,12 @@
-import { HttpException } from "@core/ErrorException";
+import { HttpException } from "@core/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler";
 import { NextFunction, Request, Response } from "express";
 import { generateCodeByName } from "src/utils";
+import { TwilioRepository } from "../Twilio";
 import { UsersModel } from "../Users";
 import { BarbersModel } from "./Barbers.model";
 import { TBarber } from "./Barbers.schema";
-import { Twilio } from "twilio";
-import { TwilioRepository } from "../Twilio";
 
 class BarbersRepository {
 	async index(_: Request, res: Response): Promise<Response<TBarber[]>> {
@@ -20,11 +19,7 @@ class BarbersRepository {
 		}
 	}
 
-	async preSignIn(
-		req: Request,
-		res: Response,
-		next: NextFunction
-	): Promise<Response<TBarber>> {
+	async preSignIn(req: Request, res: Response): Promise<Response<TBarber>> {
 		try {
 			const { user: textUser, ...body } = req.body;
 
@@ -70,11 +65,32 @@ class BarbersRepository {
 				throw OTP;
 			}
 
-			console.log(OTP);
-
 			return res.status(201).json(barber);
 		} catch (err: any) {
 			return errorHandler(err, res);
+		}
+	}
+
+	async verifySMS(
+		req: Request,
+		res: Response
+	): Promise<Response<{ valid: boolean }>> {
+		try {
+			const { code, phone } = req.body;
+
+			const verification = await TwilioRepository.verifyOTP(code, phone);
+
+			if (verification instanceof Error) {
+				throw verification;
+			}
+
+			if (!verification || !verification.valid) {
+				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
+			}
+
+			return res.status(200).json(verification);
+		} catch (error) {
+			return errorHandler(error, res);
 		}
 	}
 
@@ -84,8 +100,12 @@ class BarbersRepository {
 
 			const barber = await BarbersModel.findById(id).populate("user");
 
-			if (!barber || !barber.user._id) {
+			if (!barber) {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			if (!barber.user._id) {
+				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 			}
 
 			await UsersModel.findByIdAndDelete(barber.user._id);
@@ -109,7 +129,7 @@ class BarbersRepository {
 		}
 	}
 
-	async verifySmsTest(req: Request, res: Response): Promise<Response<any>> {
+	async verifySms(req: Request, res: Response): Promise<Response<any>> {
 		try {
 			const { code, phone } = req.body;
 
