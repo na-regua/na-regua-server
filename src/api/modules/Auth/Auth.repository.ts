@@ -23,13 +23,9 @@ class AuthRepository {
 
 			const user = await UsersModel.findByCredentials(email, password);
 
-			if (!user.generateAuthToken) {
-				throw new HttpException(500, SYSTEM_ERRORS.INTERNAL_SERVER_ERROR);
-			}
+			const accessToken = await user.generateAuthToken();
 
-			const token = await user.generateAuthToken();
-
-			return res.status(200).json({ user, token });
+			return res.status(200).json({ user, accessToken });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -52,9 +48,7 @@ class AuthRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 			}
 
-			if (!user.generateAuthToken) {
-				throw new HttpException(500, SYSTEM_ERRORS.INTERNAL_SERVER_ERROR);
-			}
+			await TwilioRepository.sendOTP(phone);
 
 			return res.status(200).json({ goToVerify: true });
 		} catch (error) {
@@ -62,7 +56,10 @@ class AuthRepository {
 		}
 	}
 
-	async verifyPhone(req: Request, res: Response): Promise<any> {
+	async verifyPhone(
+		req: Request,
+		res: Response
+	): Promise<Response<{ user: TUser; accessToken: string }>> {
 		try {
 			const { code, phone } = req.body;
 
@@ -82,13 +79,9 @@ class AuthRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 			}
 
-			if (!user.generateAuthToken) {
-				throw new HttpException(500, SYSTEM_ERRORS.INTERNAL_SERVER_ERROR);
-			}
+			const accessToken = await user.generateAuthToken();
 
-			const token = await user.generateAuthToken();
-
-			return res.status(200).json({ user, token });
+			return res.status(200).json({ user, accessToken });
 		} catch (error) {
 			return errorHandler(error, res);
 		}

@@ -5,6 +5,8 @@ import { sign } from "jsonwebtoken";
 import mongoose, { InferSchemaType, Document } from "mongoose";
 
 import isEmail from "validator/lib/isEmail";
+import TwilioClient from "../Twilio/Twilio.client";
+import { VerificationCheckInstance } from "twilio/lib/rest/verify/v2/service/verificationCheck";
 const uniqueValidator = require("mongoose-unique-validator");
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET || "naRegua";
@@ -27,6 +29,7 @@ const UsersSchema = new mongoose.Schema(
 		email: {
 			type: String,
 			unique: true,
+			required: true,
 			trim: true,
 			lowercase: true,
 			validate: [isEmail, SYSTEM_ERRORS.INVALID_EMAIL],
@@ -64,7 +67,8 @@ UsersSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 type TUser = InferSchemaType<typeof UsersSchema>;
 
 interface IUserDocument extends TUser, Document {
-	generateAuthToken?: () => Promise<string>;
+	generateAuthToken: () => Promise<string>;
+	verifyPhone: () => Promise<boolean>;
 }
 
 UsersSchema.methods.generateAuthToken = async function () {
@@ -107,8 +111,23 @@ UsersSchema.statics.findByCredentials = async function (
 	return user;
 };
 
+UsersSchema.methods.verifyPhone = async function (
+	phone: string,
+	code: string
+): Promise<void> {
+	const user = this as IUserDocument;
+
+	const verification = await TwilioClient.verifyOTP(code, user.phone);
+
+	if (verification instanceof Error) {
+		throw new HttpException(400, verification.message);
+	}
+
+	await user.updateOne({ phoneConfirmed: verification.valid });
+};
+
 UsersSchema.pre("save", async function (next) {
-	const user: IUserDocument = this;
+	const user: IUserDocument = this as IUserDocument;
 
 	if (user.isModified("password")) {
 		user.password = hashSync(user.password, 12);
