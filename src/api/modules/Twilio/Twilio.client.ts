@@ -1,5 +1,7 @@
+import { HttpException } from "@core/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import twilio from "twilio";
+import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";
 import { VerificationCheckInstance } from "twilio/lib/rest/verify/v2/service/verificationCheck";
 
 const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SERVICE_SID } =
@@ -8,10 +10,10 @@ const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SERVICE_SID } =
 const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 class TwilioRepository {
-	async sendOTP(phone: string) {
+	async sendOTP(phone: string): Promise<VerificationInstance> {
 		try {
 			if (!TWILIO_SERVICE_SID) {
-				throw new Error(SYSTEM_ERRORS.UNAVAILABLE_MESSAGE_SERVICE);
+				throw new HttpException(400, SYSTEM_ERRORS.UNAVAILABLE_MESSAGE_SERVICE);
 			}
 
 			const OTPResponse = await client.verify.v2
@@ -22,18 +24,18 @@ class TwilioRepository {
 				});
 
 			return OTPResponse;
-		} catch (error) {
-			return error;
+		} catch (error: any) {
+			throw error;
 		}
 	}
 
 	async verifyOTP(
 		code: string,
 		phone: string
-	): Promise<VerificationCheckInstance | Error> {
+	): Promise<VerificationCheckInstance> {
 		try {
 			if (!TWILIO_SERVICE_SID) {
-				throw new Error(SYSTEM_ERRORS.UNAVAILABLE_MESSAGE_SERVICE);
+				throw new HttpException(400, SYSTEM_ERRORS.UNAVAILABLE_MESSAGE_SERVICE);
 			}
 
 			const OTPResponse = await client.verify.v2
@@ -45,7 +47,7 @@ class TwilioRepository {
 
 			return OTPResponse;
 		} catch (error: any) {
-			return error;
+			throw error;
 		}
 	}
 }

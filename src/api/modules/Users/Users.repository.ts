@@ -35,13 +35,18 @@ class UsersRepository {
 		}
 	}
 
-	async smsTest(req: Request, res: Response): Promise<Response<any>> {
+	async sendWhatsappCode(
+		req: Request,
+		res: Response
+	): Promise<Response<{ goToVerify: boolean }>> {
 		try {
 			const { phone } = req.body;
 
-			const OTP = await TwilioRepository.sendOTP(phone);
+			await UsersModel.findByPhone(phone);
 
-			return res.status(200).json(OTP);
+			await TwilioRepository.sendOTP(phone);
+
+			return res.status(200).json({ goToVerify: true });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -50,6 +55,8 @@ class UsersRepository {
 	async verifySms(req: Request, res: Response): Promise<Response> {
 		try {
 			const { code, phone } = req.body;
+
+			const user = await UsersModel.findByPhone(phone);
 
 			const verification = await TwilioRepository.verifyOTP(code, phone);
 
@@ -60,6 +67,8 @@ class UsersRepository {
 			if (!verification || !verification.valid) {
 				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
 			}
+
+			await user.updateOne({ phoneConfirmed: true });
 
 			return res.status(200).json(verification);
 		} catch (error) {

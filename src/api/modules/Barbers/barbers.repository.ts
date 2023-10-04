@@ -1,7 +1,7 @@
 import { HttpException } from "@core/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler";
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import { generateCodeByName } from "src/utils";
 import { TwilioRepository } from "../Twilio";
 import { UsersModel } from "../Users";
@@ -19,9 +19,32 @@ class BarbersRepository {
 		}
 	}
 
+	async show(_: Request, res: Response): Promise<Response<TBarber>> {
+		try {
+			const { user } = res.locals;
+
+			if (!user) {
+				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+			}
+
+			const barber = await BarbersModel.findOne({ user: user._id }).populate(
+				"user"
+			);
+
+			if (!barber) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			return res.status(200).json(barber);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
 	async preSignIn(req: Request, res: Response): Promise<Response<TBarber>> {
 		try {
 			const { user: textUser, ...body } = req.body;
+			const files = req.files;
 
 			const user = JSON.parse(textUser);
 
@@ -29,18 +52,17 @@ class BarbersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 			}
 
-			if (!req.files) {
+			if (!files) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
-			const avatar = (req.files as any)[0];
+
+			const avatar = (files as any)[0];
 
 			const adminUser = await UsersModel.create({
 				...user,
 				avatar: avatar.buffer,
 				role: "admin",
 			});
-
-			await adminUser.save();
 
 			const thumbs = req.files;
 
@@ -59,38 +81,17 @@ class BarbersRepository {
 				throw err;
 			});
 
-			const OTP = await TwilioRepository.sendOTP(user.phone);
-
-			if (OTP instanceof Error) {
-				throw OTP;
+			if (!barber) {
+				throw new HttpException(400, "teste");
 			}
+
+			await barber.populate("user");
+
+			await TwilioRepository.sendOTP(user.phone);
 
 			return res.status(201).json(barber);
 		} catch (err: any) {
 			return errorHandler(err, res);
-		}
-	}
-
-	async verifySMS(
-		req: Request,
-		res: Response
-	): Promise<Response<{ valid: boolean }>> {
-		try {
-			const { code, phone } = req.body;
-
-			const verification = await TwilioRepository.verifyOTP(code, phone);
-
-			if (verification instanceof Error) {
-				throw verification;
-			}
-
-			if (!verification || !verification.valid) {
-				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
-			}
-
-			return res.status(200).json(verification);
-		} catch (error) {
-			return errorHandler(error, res);
 		}
 	}
 
@@ -104,11 +105,10 @@ class BarbersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
 
-			if (!barber.user._id) {
-				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+			if (!!barber.user && barber.user._id) {
+				await UsersModel.findByIdAndDelete(barber.user._id);
 			}
 
-			await UsersModel.findByIdAndDelete(barber.user._id);
 			await barber.deleteOne();
 
 			return res.status(204).json(null);
@@ -124,18 +124,6 @@ class BarbersRepository {
 			const OTP = await TwilioRepository.sendOTP(phone);
 
 			return res.status(200).json(OTP);
-		} catch (error) {
-			return errorHandler(error, res);
-		}
-	}
-
-	async verifySms(req: Request, res: Response): Promise<Response<any>> {
-		try {
-			const { code, phone } = req.body;
-
-			const verification = await TwilioRepository.verifyOTP(code, phone);
-
-			return res.status(200).json(verification);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

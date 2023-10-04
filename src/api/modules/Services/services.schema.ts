@@ -1,14 +1,19 @@
-import { InferSchemaType, Schema } from "mongoose";
+import { InferSchemaType, Schema, Document } from "mongoose";
+
+const uniqueValidator = require("mongoose-unique-validator");
 
 const ServicesSchema = new Schema(
 	{
-		barberId: {
+		barber: {
 			type: Schema.Types.ObjectId,
+			ref: "Barbers",
 			required: true,
 		},
 		name: {
 			type: String,
 			required: true,
+			unique: true,
+			minLength: 3,
 		},
 		price: {
 			type: Number,
@@ -39,8 +44,12 @@ interface IServiceDocument extends TService, Document {
 	isOwner: (id: string) => boolean;
 }
 
-ServicesSchema.methods.isOwner = function (id: string): boolean {
-	return this.barberId.toString() === id;
-}
+ServicesSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
+
+ServicesSchema.methods.toJSON = function (): TService {
+	const { barber, ...service } = this.toObject();
+
+	return { ...service, barberId: barber._id };
+};
 
 export { ServicesSchema, TService, IServiceDocument };

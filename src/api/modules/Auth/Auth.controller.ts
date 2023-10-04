@@ -22,8 +22,19 @@ export class AuthController extends BaseController {
 		);
 
 		this.router.post(
-			`${this.routePrefix}/verify/phone`,
+			`${this.routePrefix}/verify/whatsapp-code`,
 			AuthRepository.verifyPhone
+		);
+
+		this.router.post(
+			`${this.routePrefix}/send/whatsapp-code`,
+			AuthRepository.sendWhatsappCode
+		);
+
+		this.router.get(
+			`${this.routePrefix}/me`,
+			AuthRepository.isAuthenticated,
+			AuthRepository.getCurrentUser
 		);
 	}
 }

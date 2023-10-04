@@ -1,12 +1,12 @@
 import { HttpException } from "@core/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { compareSync, hashSync } from "bcryptjs";
-import { sign } from "jsonwebtoken";
-import mongoose, { InferSchemaType, Document } from "mongoose";
+import { sign, verify } from "jsonwebtoken";
+import mongoose, { Document, InferSchemaType } from "mongoose";
 
 import isEmail from "validator/lib/isEmail";
 import TwilioClient from "../Twilio/Twilio.client";
-import { VerificationCheckInstance } from "twilio/lib/rest/verify/v2/service/verificationCheck";
+
 const uniqueValidator = require("mongoose-unique-validator");
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET || "naRegua";
@@ -99,13 +99,48 @@ UsersSchema.statics.findByCredentials = async function (
 	const user = await UserModel.findOne({ email });
 
 	if (!user) {
-		return Promise.reject(new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND));
+		throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 	}
 
 	if (!compareSync(password, user.password)) {
-		return Promise.reject(
-			new HttpException(400, SYSTEM_ERRORS.INVALID_PASSWORD)
-		);
+		throw new HttpException(400, SYSTEM_ERRORS.INVALID_PASSWORD);
+	}
+
+	return user;
+};
+
+UsersSchema.statics.findByPhone = async function (
+	phone: string
+): Promise<IUserDocument> {
+	let UserModel = this;
+
+	const user = UserModel.findOne({ phone });
+
+	if (!user) {
+		throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+	}
+
+	return user;
+};
+
+UsersSchema.statics.findByToken = async function (
+	token: string
+): Promise<IUserDocument> {
+	const UsersModel = this;
+	let decoded: any;
+
+	try {
+		decoded = verify(token, TOKEN_SECRET);
+	} catch {
+		throw new HttpException(400, SYSTEM_ERRORS.INVALID_TOKEN);
+	}
+
+	const user = await UsersModel.findOne({
+		_id: decoded._id,
+	});
+
+	if (!user) {
+		throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 	}
 
 	return user;
@@ -119,11 +154,11 @@ UsersSchema.methods.verifyPhone = async function (
 
 	const verification = await TwilioClient.verifyOTP(code, user.phone);
 
-	if (verification instanceof Error) {
-		throw new HttpException(400, verification.message);
+	if (!verification || !verification.valid) {
+		throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
 	}
 
-	await user.updateOne({ phoneConfirmed: verification.valid });
+	await user.updateOne({ phoneConfirmed: true });
 };
 
 UsersSchema.pre("save", async function (next) {
@@ -136,4 +171,4 @@ UsersSchema.pre("save", async function (next) {
 	next();
 });
 
-export { IUserDocument, TUser, UsersSchema };
+export { IUserDocument, TOKEN_SECRET, TUser, UsersSchema };
