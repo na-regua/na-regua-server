@@ -57,7 +57,7 @@ class ServicesRepository {
 
 			await service.updateOne(body);
 
-			return res.status(201).json(null);
+			return res.status(204).json(null);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -75,7 +75,7 @@ class ServicesRepository {
 
 			await service.deleteOne();
 
-			return res.status(201).json(null);
+			return res.status(204).json(null);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

@@ -14,6 +14,9 @@ export const SYSTEM_ERRORS = {
 	FILE_NOT_FOUND: "Nenhum arquivo encontrado!",
 	TOKEN_NOT_FOUND: "Token não encontrado!",
 	SERVICE_NOT_FOUND: "Serviço não encontrado!",
+	WORKER_NOT_FOUND: "Funcionário não encontrado!",
+
+	WORKER_NOT_CREATED: "Não foi possível criar o Funcionário!",
 
 	USER_ALREADY_EXISTS: "Usuário já existe.",
 

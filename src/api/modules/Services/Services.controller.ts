@@ -3,7 +3,7 @@ import ServicesRepository from "./Services.repository";
 import { AuthRepository } from "../Auth";
 
 class ServicesController extends BaseController {
-	routePrefix = "/barbers/services";
+	routePrefix = "/services";
 
 	constructor() {
 		super();

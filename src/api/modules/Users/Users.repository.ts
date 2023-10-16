@@ -1,8 +1,7 @@
 import { HttpException } from "@core/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler";
-import { NextFunction, Request, Response } from "express";
-import { generateCodeByName } from "src/utils";
+import { Request, Response } from "express";
 import { TwilioRepository } from "../Twilio";
 import { TUser, UsersModel } from "../Users";
 
@@ -14,6 +13,25 @@ class UsersRepository {
 			return res.status(200).json(users);
 		} catch (err: any) {
 			return errorHandler(err, res);
+		}
+	}
+
+	async create(req: Request, res: Response): Promise<Response<TUser>> {
+		try {
+			const body = req.body;
+			const file = req.file;
+
+			if (!file) {
+				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
+			}
+
+			body.avatar = file.buffer;
+
+			const user = await UsersModel.create(body);
+
+			return res.status(201).json(user);
+		} catch (error) {
+			return errorHandler(error, res);
 		}
 	}
 

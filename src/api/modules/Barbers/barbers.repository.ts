@@ -11,7 +11,7 @@ import { TBarber } from "./Barbers.schema";
 class BarbersRepository {
 	async index(_: Request, res: Response): Promise<Response<TBarber[]>> {
 		try {
-			const barbers = await BarbersModel.find().populate("user", "-password");
+			const barbers = await BarbersModel.find();
 
 			return res.status(200).json(barbers);
 		} catch (err: any) {
@@ -27,10 +27,10 @@ class BarbersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 			}
 
-			const barber = await BarbersModel.findOne({ user: user._id }).populate(
-				"user"
-			);
-
+			const barber = await BarbersModel.findOne({ user: user._id })
+				.populate("user")
+				.populate("workers")
+				.populate("services");
 			if (!barber) {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
@@ -92,6 +92,27 @@ class BarbersRepository {
 			return res.status(201).json(barber);
 		} catch (err: any) {
 			return errorHandler(err, res);
+		}
+	}
+
+	async update(req: Request, res: Response): Promise<Response<null>> {
+		try {
+			const body = req.body;
+
+			const { id } = req.params;
+
+			const barber = await BarbersModel.findById(id);
+
+			if (!barber) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			await barber.updateOne(body);
+			await barber.save();
+
+			return res.status(204).json(null);
+		} catch (error) {
+			return errorHandler(error, res);
 		}
 	}
 

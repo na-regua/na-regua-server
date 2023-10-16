@@ -132,7 +132,7 @@ UsersSchema.statics.findByToken = async function (
 	try {
 		decoded = verify(token, TOKEN_SECRET);
 	} catch {
-		throw new HttpException(400, SYSTEM_ERRORS.INVALID_TOKEN);
+		throw new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
 	}
 
 	const user = await UsersModel.findOne({

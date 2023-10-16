@@ -2,6 +2,7 @@ import {
 	AuthController,
 	BarbersController,
 	UsersController,
+	WorkersController,
 } from "@api/modules";
 import ServicesController from "@api/modules/Services/Services.controller";
 import { Application } from "express";
@@ -20,6 +21,7 @@ class Router {
 		this.initUsersRoutes();
 		this.initAuthRoutes();
 		this.initServicesRoutes();
+		this.initWorkersRoutes();
 	}
 
 	initBarbersRoutes(): void {
@@ -40,6 +42,11 @@ class Router {
 	initAuthRoutes(): void {
 		const authController = new AuthController();
 		this.app.use(`${this.apiPrefix}`, authController.router);
+	}
+
+	initWorkersRoutes(): void {
+		const workersController = new WorkersController();
+		this.app.use(`${this.apiPrefix}`, workersController.router);
 	}
 }
 
