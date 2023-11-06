@@ -1,12 +1,9 @@
 import { Model, model } from "mongoose";
-import { BarbersSchema, IBarberDocument } from "./barbers.schema";
+import { BarbersSchema, IBarberDocument } from "./Barbers.schema";
 
-interface IBarberMethods {
-	findByCredentials(phone: string): Promise<IBarberDocument>;
-	findByToken(token: string): Promise<IBarberDocument>;
-}
+interface IBarberMethods {}
 
-interface IBarbersModel extends Model<IBarberDocument, {}, IBarberMethods> {}
+interface IBarbersModel extends Model<IBarberDocument, IBarberMethods> {}
 
 const BarbersModel: IBarbersModel = model<IBarberDocument, IBarbersModel>(
 	"Barbers",

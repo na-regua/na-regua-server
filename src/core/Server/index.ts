@@ -1,8 +1,9 @@
+import connection from "@config/connection";
 import { json } from "body-parser";
 import cors from "cors";
 import express from "express";
-import { Router } from "../Router";
-import connection from "@config/connection";
+import { Router } from "../Router/Router";
+import path from "path";
 
 class Server {
 	app!: express.Application;
@@ -24,6 +25,7 @@ class Server {
 	private middlewares(): void {
 		this.app.use(json());
 		this.app.use(cors());
+		this.app.use(express.static(path.join(__dirname, "../../public")));
 	}
 
 	private async connectDB(): Promise<any> {

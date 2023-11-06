@@ -7,7 +7,7 @@ abstract class BaseController {
 
 	constructor() {}
 
-	abstract handleRoutes(): void;
+	abstract defineRoutes(): void;
 }
 
 export { BaseController };

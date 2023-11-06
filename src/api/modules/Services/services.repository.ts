@@ -1,13 +1,24 @@
-import { Request, Response } from "express";
-import { TService } from "./services.schema";
+import { HttpException } from "@core/HttpException";
+import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler";
-import { ServicesModel } from "./services.model";
-import { HttpException } from "@core/ErrorException";
+import { Request, Response } from "express";
+import { FilterQuery } from "mongoose";
+import { IBarberDocument } from "../Barbers";
+import { ServicesModel } from "./Services.model";
+import { IServiceDocument, TService } from "./Services.schema";
 
 class ServicesRepository {
 	async index(req: Request, res: Response): Promise<Response<TService[]>> {
 		try {
-			const services = await ServicesModel.find();
+			const query = req.query;
+
+			const filter: FilterQuery<IServiceDocument> = {};
+
+			if (query.barberId) {
+				filter.barber = query.barberId;
+			}
+
+			const services = await ServicesModel.find(filter);
 
 			return res.status(200).json(services);
 		} catch (error) {
@@ -19,11 +30,18 @@ class ServicesRepository {
 		try {
 			const body = req.body;
 
-			if (!body) {
-				throw new HttpException(400, "Body is empty!");
-			}
+			const barber: IBarberDocument = res.locals.barber;
+
+			body.barber = barber._id;
 
 			const newService = await ServicesModel.create(body);
+
+			if (!newService) {
+				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_CREATED);
+			}
+
+			barber.services.push(newService._id);
+			await barber.save();
 
 			return res.status(201).json(newService);
 		} catch (error) {
@@ -33,22 +51,20 @@ class ServicesRepository {
 
 	async update(req: Request, res: Response): Promise<Response<TService>> {
 		try {
-			const id = req.path;
+			const { id } = req.params;
 			const body = req.body;
 
-			const service = await ServicesModel.findById(id);
+			const barber: IBarberDocument = res.locals.barber;
 
-			if (!service) {
-				throw new HttpException(400, "Body is empty!");
-			}
+			const updatedService = await ServicesModel.findOneAndUpdate(
+				{
+					_id: id,
+					barber: barber._id,
+				},
+				body
+			);
 
-			if (!service.isOwner(id)) {
-				throw new HttpException(401, "Unauthorized!");
-			}
-
-			await service.updateOne(body);
-
-			return res.status(201).json(service);
+			return res.status(201).json(updatedService);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -56,25 +72,26 @@ class ServicesRepository {
 
 	async delete(req: Request, res: Response): Promise<Response<null>> {
 		try {
-			const id = req.path;
+			const { id } = req.params;
+			const barber: IBarberDocument = res.locals.barber;
 
-			const service = await ServicesModel.findById(id);
+			const service = await ServicesModel.findByIdAndDelete(id);
 
 			if (!service) {
-				throw new HttpException(400, "No service found!");
+				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
 			}
 
-			if (!service.isOwner(id)) {
-				throw new HttpException(401, "Unauthorized!");
-			}
+			await barber.updateOne({
+				$pull: {
+					services: service._id,
+				},
+			});
 
-			await service.deleteOne();
-
-			return res.status(201).json(null);
+			return res.status(200).json(service);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
 	}
 }
 
-export default { ServicesRepository: new ServicesRepository() };
+export default new ServicesRepository();
