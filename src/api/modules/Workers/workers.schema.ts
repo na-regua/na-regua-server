@@ -1,4 +1,4 @@
-import mongoose, { InferSchemaType } from "mongoose";
+import mongoose, { InferSchemaType, Document } from "mongoose";
 
 const WorkersSchema = new mongoose.Schema(
 	{

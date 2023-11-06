@@ -8,7 +8,7 @@ import { TUser, UsersModel } from "../Users";
 class UsersRepository {
 	async index(_: Request, res: Response): Promise<Response<TUser[]>> {
 		try {
-			const users = await UsersModel.find();
+			const users = await UsersModel.find().populate("avatar", '-_id');
 
 			return res.status(200).json(users);
 		} catch (err: any) {
@@ -65,7 +65,7 @@ class UsersRepository {
 			await TwilioRepository.sendOTP(phone);
 
 			return res.status(200).json({ goToVerify: true });
-		} catch (error) {
+		} catch (error: any) {
 			return errorHandler(error, res);
 		}
 	}

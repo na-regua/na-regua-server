@@ -1,6 +1,7 @@
 import { BaseController } from "@core/BaseController";
 import UsersRepository from "./Users.repository";
 import { multerUpload } from "@config/multer";
+import { ENDPOINTS } from "@core/Router";
 
 export class UsersController extends BaseController {
 	routePrefix = "/users";
@@ -12,18 +13,15 @@ export class UsersController extends BaseController {
 	}
 
 	defineRoutes(): void {
-		this.router.get(this.routePrefix, UsersRepository.index);
+		this.router.get(ENDPOINTS.USERS_LIST, UsersRepository.index);
 		this.router.post(
-			this.routePrefix,
+			ENDPOINTS.USERS_CREATE,
 			multerUpload.single("file"),
 			UsersRepository.create
 		);
 
-		this.router.post(
-			`${this.routePrefix}/verify-sms`,
-			UsersRepository.verifySms
-		);
+		this.router.post(ENDPOINTS.USERS_SMS_TEST, UsersRepository.verifySms);
 
-		this.router.delete(`${this.routePrefix}/:id`, UsersRepository.delete);
+		this.router.delete(ENDPOINTS.USERS_DELETE, UsersRepository.delete);
 	}
 }

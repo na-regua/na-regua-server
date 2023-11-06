@@ -1,7 +1,9 @@
+import { handleRemoveFile, handleSingleUploadFile } from "@config/multer";
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
 import { IBarberDocument } from "../Barbers";
+import { FilesModel } from "../Files";
 import { IUserDocument, UsersModel } from "../Users";
 import { WorkersModel } from "./Workers.model";
 import { IWorkerDocument, TWorker } from "./Workers.schema";
@@ -17,7 +19,12 @@ class WorkersRepository {
 				filters.barber = query.barberId;
 			}
 
-			const workers = await WorkersModel.find(filters).populate("user");
+			const workers = await WorkersModel.find(filters).populate({
+				path: "user",
+				populate: {
+					path: "avatar",
+				},
+			});
 
 			return res.status(200).json(workers);
 		} catch (error) {
@@ -27,8 +34,16 @@ class WorkersRepository {
 
 	async create(req: Request, res: Response): Promise<Response<any>> {
 		try {
-			const body = req.body;
-			const file = req.file;
+			const { file, body: bodyFromReq } = await handleSingleUploadFile(
+				req,
+				res
+			);
+
+			if (!file) {
+				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
+			}
+
+			const { admin, ...body } = bodyFromReq;
 
 			const barber: IBarberDocument = res.locals.barber;
 
@@ -36,13 +51,23 @@ class WorkersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
 
-			body.avatar = file.buffer;
+			const avatarFile = await FilesModel.create({
+				filename: file.filename,
+				localPath: file.path,
+				url: `uploads/${file.filename}`,
+			});
+
+			body.avatar = avatarFile._id;
+
+			body.role = !!admin ? "admin" : "worker";
 
 			const workerUser = await UsersModel.create(body);
 
 			if (!workerUser) {
-				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_CREATED);
 			}
+
+			res.locals.workerUser = workerUser;
 
 			const worker = await WorkersModel.create({
 				user: workerUser._id,
@@ -53,6 +78,8 @@ class WorkersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_CREATED);
 			}
 
+			res.locals.worker = worker;
+
 			await barber.updateOne({
 				$push: {
 					workers: worker._id,
@@ -61,35 +88,58 @@ class WorkersRepository {
 
 			return res.status(200).json(worker);
 		} catch (error) {
+			const workerUser: IUserDocument = res.locals.workerUser;
+			const worker: IWorkerDocument = res.locals.worker;
+
+			if (workerUser) {
+				workerUser.deleteOne();
+			}
+
+			if (worker) {
+				worker.deleteOne();
+			}
+
 			return errorHandler(error, res);
 		}
 	}
 
 	async update(req: Request, res: Response): Promise<Response<any>> {
 		try {
-			const user: IUserDocument = res.locals.user;
-
-			const body = req.body;
+			const { body, file } = await handleSingleUploadFile(req, res);
 
 			const workerId = req.params.id;
 
 			const worker = await WorkersModel.findOne({
 				_id: workerId,
-			}).populate("user");
+			});
 
 			if (!worker) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 			}
 
-			const workerUser = await UsersModel.findById(worker.user._id);
+			if (body.phone) {
+				body.phoneConfirmed = false;
+			}
+
+			const workerUser = await UsersModel.findByIdAndUpdate(worker.user._id);
 
 			if (!workerUser) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 			}
 
-			await workerUser.updateOne(body);
+			const avatarFile = await FilesModel.findById(workerUser.avatar);
 
-			return res.status(200).json(null);
+			if (file && avatarFile) {
+				await handleRemoveFile(avatarFile.localPath);
+
+				await avatarFile.updateOne({
+					filename: file.filename,
+					localPath: file.path,
+					url: `uploads/${file.filename}`,
+				});
+			}
+
+			return res.status(201).json(workerUser);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -99,24 +149,29 @@ class WorkersRepository {
 		try {
 			const workerId = req.params.id;
 
-			const user: IUserDocument = res.locals.user;
 			const barber: IBarberDocument = res.locals.barber;
 
 			if (!workerId) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 			}
 
-			await WorkersModel.deleteOne({
-				_id: workerId,
-			});
-			await user.deleteOne();
+			const deletedWorker = await WorkersModel.findByIdAndDelete(workerId);
+
+			if (!deletedWorker) {
+				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
+			}
+
+			const deletedUser = await UsersModel.findByIdAndDelete(
+				deletedWorker.user._id
+			);
+
 			await barber.updateOne({
 				$pull: {
-					workers: workerId,
+					workers: deletedWorker._id,
 				},
 			});
 
-			return res.status(200).json(null);
+			return res.status(200).json({ deletedWorker, deletedUser });
 		} catch (error) {
 			return errorHandler(error, res);
 		}

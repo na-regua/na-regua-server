@@ -1,12 +1,11 @@
-import { NextFunction, Request, Response } from "express";
-import { IServiceDocument, TService } from "./Services.schema";
-import { errorHandler } from "@core/errorHandler";
-import { ServicesModel } from "./Services.model";
 import { HttpException } from "@core/HttpException";
-import { IUserDocument } from "../Users";
-import { BarbersModel } from "../Barbers";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
+import { errorHandler } from "@core/errorHandler";
+import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
+import { IBarberDocument } from "../Barbers";
+import { ServicesModel } from "./Services.model";
+import { IServiceDocument, TService } from "./Services.schema";
 
 class ServicesRepository {
 	async index(req: Request, res: Response): Promise<Response<TService[]>> {
@@ -31,33 +30,41 @@ class ServicesRepository {
 		try {
 			const body = req.body;
 
-			const user: IUserDocument = res.locals.user;
-
-			const barber = await BarbersModel.findOne({ user: user._id });
-
-			if (!barber) {
-				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
-			}
+			const barber: IBarberDocument = res.locals.barber;
 
 			body.barber = barber._id;
 
 			const newService = await ServicesModel.create(body);
+
+			if (!newService) {
+				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_CREATED);
+			}
+
+			barber.services.push(newService._id);
+			await barber.save();
 
 			return res.status(201).json(newService);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
 	}
-	
+
 	async update(req: Request, res: Response): Promise<Response<TService>> {
 		try {
+			const { id } = req.params;
 			const body = req.body;
 
-			const service: IServiceDocument = res.locals.service;
+			const barber: IBarberDocument = res.locals.barber;
 
-			await service.updateOne(body);
+			const updatedService = await ServicesModel.findOneAndUpdate(
+				{
+					_id: id,
+					barber: barber._id,
+				},
+				body
+			);
 
-			return res.status(204).json(null);
+			return res.status(201).json(updatedService);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -66,50 +73,21 @@ class ServicesRepository {
 	async delete(req: Request, res: Response): Promise<Response<null>> {
 		try {
 			const { id } = req.params;
+			const barber: IBarberDocument = res.locals.barber;
 
-			const service = await ServicesModel.findById(id);
+			const service = await ServicesModel.findByIdAndDelete(id);
 
 			if (!service) {
 				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
 			}
 
-			await service.deleteOne();
-
-			return res.status(204).json(null);
-		} catch (error) {
-			return errorHandler(error, res);
-		}
-	}
-
-	async isOwner(req: Request, res: Response, next: NextFunction): Promise<any> {
-		try {
-			const { id } = req.params;
-
-			const user: IUserDocument = res.locals.user;
-
-			const barber = await BarbersModel.findOne({ user: user._id });
-
-			if (!barber) {
-				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
-			}
-
-			const service = await ServicesModel.findOne({
-				_id: id,
-				barber: barber._id,
+			await barber.updateOne({
+				$pull: {
+					services: service._id,
+				},
 			});
 
-			if (!service) {
-				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
-			}
-
-			if (service.barber._id.toString() !== barber._id.toString()) {
-				throw new HttpException(401, SYSTEM_ERRORS.FORBIDDEN);
-			}
-
-			res.locals.barber = barber;
-			res.locals.service = service;
-
-			next();
+			return res.status(200).json(service);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

@@ -40,9 +40,7 @@ const ServicesSchema = new Schema(
 
 type TService = InferSchemaType<typeof ServicesSchema>;
 
-interface IServiceDocument extends TService, Document {
-	isOwner: (id: string) => boolean;
-}
+interface IServiceDocument extends TService, Document {}
 
 ServicesSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 

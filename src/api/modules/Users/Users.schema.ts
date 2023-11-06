@@ -40,16 +40,17 @@ const UsersSchema = new mongoose.Schema(
 			minLength: 6,
 		},
 		avatar: {
-			type: Buffer,
+			type: mongoose.Schema.Types.ObjectId,
 			required: true,
-			content: String,
+			ref: "Files",
 		},
-		accessToken: String,
 		role: {
 			type: String,
 			required: true,
 			enum: ["admin", "worker", "custommer"],
 		},
+		temporaryPassword: Boolean,
+		accessToken: String,
 		phoneConfirmed: {
 			type: Boolean,
 			default: false,

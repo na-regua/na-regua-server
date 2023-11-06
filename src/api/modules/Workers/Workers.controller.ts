@@ -22,7 +22,6 @@ export class WorkersController extends BaseController {
 
 		this.router.post(
 			this.routePrefix,
-			multerUpload.single("file"),
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			WorkersRepository.create
@@ -30,7 +29,6 @@ export class WorkersController extends BaseController {
 
 		this.router.put(
 			`${this.routePrefix}/:id`,
-			multerUpload.single("file"),
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			WorkersRepository.update

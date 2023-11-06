@@ -15,6 +15,7 @@ class ServicesController extends BaseController {
 		this.router.get(
 			this.routePrefix,
 			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
 			ServicesRepository.index
 		);
 
@@ -22,7 +23,6 @@ class ServicesController extends BaseController {
 			`${this.routePrefix}/:id`,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
-			ServicesRepository.isOwner,
 			ServicesRepository.update
 		);
 		this.router.post(
@@ -35,7 +35,6 @@ class ServicesController extends BaseController {
 			`${this.routePrefix}/:id`,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
-			ServicesRepository.isOwner,
 			ServicesRepository.delete
 		);
 	}
