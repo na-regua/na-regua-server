@@ -1,12 +1,12 @@
-import connection from "@config/connection";
+import connection from "@config/connection/connection";
 import { json } from "body-parser";
 import cors from "cors";
-import express from "express";
-import { Router } from "../Router/Router";
+import express, { Application } from "express";
 import path from "path";
+import { Router } from "../Router/Router";
 
 class Server {
-	app!: express.Application;
+	app!: Application;
 	apiPrefix = process.env.API_PREFIX || "/api";
 
 	constructor() {
@@ -18,8 +18,8 @@ class Server {
 	}
 
 	private initAPIRoutes(): void {
-		const server = new Router(this.app, this.apiPrefix);
-		server.initRoutes();
+		const appRouter = new Router(this.app, this.apiPrefix);
+		appRouter.initRoutes();
 	}
 
 	private middlewares(): void {

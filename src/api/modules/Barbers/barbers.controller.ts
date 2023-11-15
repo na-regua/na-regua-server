@@ -1,12 +1,9 @@
-import { BaseController } from "@core/BaseController";
-import BarbersRepository from "./Barbers.repository";
-import { multerUpload } from "@config/multer";
-import { AuthRepository } from "../Auth";
+import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
+import { AuthRepository } from "../Auth";
+import BarbersRepository from "./Barbers.repository";
 
 export class BarbersController extends BaseController {
-	routePrefix = "/barbers";
-
 	constructor() {
 		super();
 

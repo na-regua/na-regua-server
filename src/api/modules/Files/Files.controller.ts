@@ -1,12 +1,10 @@
 import { multerUpload } from "@config/multer";
-import { BaseController } from "@core/BaseController";
+import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
 import { AuthRepository } from "../Auth";
 import FilesRepository from "./Files.repository";
 
 export class FilesController extends BaseController {
-	routePrefix = "/files/";
-
 	constructor() {
 		super();
 

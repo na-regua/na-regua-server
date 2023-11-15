@@ -1,10 +1,9 @@
-import { BaseController } from "@core/BaseController";
+import { BaseController } from "@core/BaseController/BaseController";
 import ServicesRepository from "./Services.repository";
 import { AuthRepository } from "../Auth";
+import { ENDPOINTS } from "@core/Router";
 
 class ServicesController extends BaseController {
-	routePrefix = "/services";
-
 	constructor() {
 		super();
 
@@ -13,26 +12,26 @@ class ServicesController extends BaseController {
 
 	defineRoutes(): void {
 		this.router.get(
-			this.routePrefix,
+			ENDPOINTS.SERVICES_LIST,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			ServicesRepository.index
 		);
 
 		this.router.put(
-			`${this.routePrefix}/:id`,
+			ENDPOINTS.SERVICES_UPDATE,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			ServicesRepository.update
 		);
 		this.router.post(
-			this.routePrefix,
+			ENDPOINTS.SERVICES_CREATE,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			ServicesRepository.create
 		);
 		this.router.delete(
-			`${this.routePrefix}/:id`,
+			ENDPOINTS.SERVICES_DELETE,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			ServicesRepository.delete

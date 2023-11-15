@@ -1,4 +1,4 @@
-import { HttpException } from "@core/HttpException";
+import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/index";
 import { Request, Response } from "express";
 import multer from "multer";

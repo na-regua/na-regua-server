@@ -1,11 +1,9 @@
-import { BaseController } from "@core/BaseController";
-import UsersRepository from "./Users.repository";
 import { multerUpload } from "@config/multer";
+import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
+import UsersRepository from "./Users.repository";
 
 export class UsersController extends BaseController {
-	routePrefix = "/users";
-
 	constructor() {
 		super();
 

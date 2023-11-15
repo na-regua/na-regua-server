@@ -2,8 +2,8 @@ import {
 	handleMultipleUploadFile,
 	handleSingleUploadFile,
 } from "@config/multer/";
-import { HttpException } from "@core/HttpException";
-import { errorHandler } from "@core/errorHandler";
+import { HttpException } from "@core/HttpException/HttpException";
+import { errorHandler } from "@core/errorHandler/errorHandler";
 import { SYSTEM_ERRORS } from "@core/index";
 import { Request, Response } from "express";
 import { IBarberDocument } from "../Barbers";

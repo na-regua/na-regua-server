@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { HttpException } from "../HttpException";
+import { HttpException } from "../HttpException/HttpException";
 import { SYSTEM_ERRORS } from "..";
 
 function errorHandler(err: any, res: Response): Response {

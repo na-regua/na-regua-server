@@ -16,4 +16,19 @@ export const ENDPOINTS = {
 	FILES_UPDATE_USER: "/files/:id/user",
 	FILES_UPDATE_BARBER_AVATAR: "/files/:avatarId/barber/",
 	FILES_CREATE: "/files/",
+
+	WORKERS_LIST: "/workers/",
+	WORKERS_CREATE: "/workers/",
+	WORKERS_UPDATE: "/workers/:id",
+	WORKERS_DELETE: "/workers/:id",
+
+	AUTH_LOGIN_EMAIL: "/auth/login/email",
+	AUTH_VERIFY_WHATSAPP: "/auth/verify/whatsapp",
+	AUTH_SEND_WHATSAPP_CODE: "/auth/send/whatsapp-code",
+	AUTH_GET_CURRENT_USER: "/auth/me",
+
+	SERVICES_LIST: "/services/",
+	SERVICES_UPDATE: "/services/:id",
+	SERVICES_CREATE: "/services/",
+	SERVICES_DELETE: "/services/:id",
 };

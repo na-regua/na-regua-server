@@ -1,6 +1,6 @@
-import { HttpException } from "@core/HttpException";
+import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
-import { errorHandler } from "@core/errorHandler";
+import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
 import { IBarberDocument } from "../Barbers";

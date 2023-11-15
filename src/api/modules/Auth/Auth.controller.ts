@@ -1,9 +1,8 @@
-import { BaseController } from "@core/BaseController";
+import { BaseController } from "@core/BaseController/BaseController";
+import { ENDPOINTS } from "@core/Router";
 import AuthRepository from "./Auth.repository";
 
 export class AuthController extends BaseController {
-	routePrefix = "/auth";
-
 	constructor() {
 		super();
 
@@ -11,23 +10,20 @@ export class AuthController extends BaseController {
 	}
 
 	defineRoutes(): void {
-		this.router.post(
-			`${this.routePrefix}/login/email`,
-			AuthRepository.loginWithEmail
-		);
+		this.router.post(ENDPOINTS.AUTH_LOGIN_EMAIL, AuthRepository.loginWithEmail);
 
 		this.router.post(
-			`${this.routePrefix}/verify/whatsapp-code`,
+			ENDPOINTS.AUTH_VERIFY_WHATSAPP,
 			AuthRepository.verifyWhatsappCode
 		);
 
 		this.router.post(
-			`${this.routePrefix}/send/whatsapp-code`,
+			ENDPOINTS.AUTH_SEND_WHATSAPP_CODE,
 			AuthRepository.sendWhatsappCode
 		);
 
 		this.router.get(
-			`${this.routePrefix}/me`,
+			ENDPOINTS.AUTH_GET_CURRENT_USER,
 			AuthRepository.isAuthenticated,
 			AuthRepository.getCurrentUser
 		);

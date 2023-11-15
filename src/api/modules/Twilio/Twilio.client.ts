@@ -1,4 +1,4 @@
-import { HttpException } from "@core/HttpException";
+import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import twilio from "twilio";
 import { VerificationInstance } from "twilio/lib/rest/verify/v2/service/verification";

@@ -1,4 +1,4 @@
-import { HttpException } from "@core/HttpException";
+import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { compareSync, hashSync } from "bcryptjs";
 import { sign, verify } from "jsonwebtoken";
