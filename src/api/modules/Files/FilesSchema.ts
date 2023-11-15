@@ -8,9 +8,11 @@ const FilesSchema = new Schema(
 			required: true,
 			unique: true,
 		},
+		originalName: {
+			type: String,
+		},
 		localPath: {
 			type: String,
-			required: true,
 		},
 		url: {
 			type: String,

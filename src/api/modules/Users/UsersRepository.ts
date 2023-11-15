@@ -4,6 +4,7 @@ import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
 import { TUser, UsersModel } from ".";
 import { TwilioRepository } from "../Twilio";
+import { FilesModel, TUploadedFile } from "../Files";
 
 class UsersRepository {
 	async index(_: Request, res: Response): Promise<Response<TUser[]>> {
@@ -18,16 +19,24 @@ class UsersRepository {
 
 	async create(req: Request, res: Response): Promise<Response<TUser>> {
 		try {
+			const file = req.file as TUploadedFile;
 			const body = req.body;
-			const file = req.file;
 
 			if (!file) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
 
-			body.avatar = file.buffer;
+			const avatarFile = await FilesModel.create({
+				filename: file.filename,
+				url: file.path,
+				originalName: file.originalname,
+			});
+
+			body.avatar = avatarFile._id;
 
 			const user = await UsersModel.create(body);
+
+			await user.populate("avatar", "-_id");
 
 			return res.status(201).json(user);
 		} catch (error) {

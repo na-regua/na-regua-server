@@ -1,9 +1,8 @@
-import { handleRemoveFile, handleSingleUploadFile } from "@config/multer";
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
 import { IBarberDocument } from "../Barbers";
-import { FilesModel } from "../Files";
+import { FilesModel, TUploadedFile } from "../Files";
 import { IUserDocument, UsersModel } from "../Users";
 import { IWorkerDocument, TWorker, WorkersModel } from "./WorkersSchema";
 
@@ -33,27 +32,20 @@ class WorkersRepository {
 
 	async create(req: Request, res: Response): Promise<Response<any>> {
 		try {
-			const { file, body: bodyFromReq } = await handleSingleUploadFile(
-				req,
-				res
-			);
+			const file = req.file as TUploadedFile;
 
 			if (!file) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
 
-			const { admin, ...body } = bodyFromReq;
+			const { admin, ...body } = req.body;
 
 			const barber: IBarberDocument = res.locals.barber;
 
-			if (!file) {
-				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
-			}
-
 			const avatarFile = await FilesModel.create({
 				filename: file.filename,
-				localPath: file.path,
-				url: `uploads/${file.filename}`,
+				originalName: file.originalname,
+				url: file.path,
 			});
 
 			body.avatar = avatarFile._id;
@@ -104,7 +96,8 @@ class WorkersRepository {
 
 	async update(req: Request, res: Response): Promise<Response<any>> {
 		try {
-			const { body, file } = await handleSingleUploadFile(req, res);
+			const body = req.body;
+			const file = req.file as TUploadedFile;
 
 			const workerId = req.params.id;
 
@@ -129,7 +122,7 @@ class WorkersRepository {
 			const avatarFile = await FilesModel.findById(workerUser.avatar);
 
 			if (file && avatarFile) {
-				await handleRemoveFile(avatarFile.localPath);
+				// TO DO - Delete old file from
 
 				await avatarFile.updateOne({
 					filename: file.filename,

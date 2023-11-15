@@ -1,7 +1,7 @@
 import { BaseController } from "@core/index";
 import { AuthRepository } from "../Auth";
 import WorkersRepository from "./WorkersRepository";
-import { multerUpload } from "@config/multer";
+import { cloudinaryStorage, multerUpload } from "@config/multer";
 import { ENDPOINTS } from "@core/Router";
 
 export class WorkersController extends BaseController {
@@ -21,6 +21,7 @@ export class WorkersController extends BaseController {
 
 		this.router.post(
 			ENDPOINTS.WORKERS_CREATE,
+			cloudinaryStorage.single("file"),
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			WorkersRepository.create
@@ -28,6 +29,7 @@ export class WorkersController extends BaseController {
 
 		this.router.put(
 			ENDPOINTS.WORKERS_UPDATE,
+			cloudinaryStorage.single("file"),
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			WorkersRepository.update

@@ -2,6 +2,7 @@ import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
 import { AuthRepository } from "../Auth";
 import BarbersRepository from "./BarbersRepository";
+import { cloudinaryStorage } from "@config/multer";
 
 export class BarbersController extends BaseController {
 	constructor() {
@@ -27,7 +28,11 @@ export class BarbersController extends BaseController {
 			BarbersRepository.update
 		);
 
-		this.router.post(ENDPOINTS.BARBERS_SIGN_UP, BarbersRepository.signUp);
+		this.router.post(
+			ENDPOINTS.BARBERS_SIGN_UP,
+			cloudinaryStorage.array("files"),
+			BarbersRepository.signUp
+		);
 
 		this.router.delete(
 			ENDPOINTS.BARBERS_DELETE,

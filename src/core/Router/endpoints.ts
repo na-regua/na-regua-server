@@ -8,7 +8,8 @@ export const ENDPOINTS = {
 
 	USERS_LIST: "/users/",
 	USERS_CREATE: "/users/",
-	USERS_SMS_TEST: "/users/sms-test",
+	USERS_SEND_WHATSAPP_CODE: "/users/send/whatsapp-code",
+	USERS_VERIFY_WHATSAPP_CODE: "/users/verify/whatsapp",
 	USERS_DELETE: "/users/:id",
 
 	FILES_BARBER: "/files/barber",
