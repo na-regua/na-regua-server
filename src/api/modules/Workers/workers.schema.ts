@@ -34,4 +34,4 @@ const WorkersModel: IWorkersModel = model<IWorkerDocument, IWorkersModel>(
 	WorkersSchema
 );
 
-export { IWorkerDocument, IWorkersModel, TWorker, WorkersModel, WorkersSchema };
+export { IWorkerDocument, IWorkersModel, WorkersModel, TWorker, WorkersSchema };

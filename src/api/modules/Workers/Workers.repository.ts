@@ -5,7 +5,7 @@ import { FilterQuery } from "mongoose";
 import { IBarberDocument } from "../Barbers";
 import { FilesModel } from "../Files";
 import { IUserDocument, UsersModel } from "../Users";
-import { IWorkerDocument, TWorker, WorkersModel } from "./Workers.schema";
+import { IWorkerDocument, TWorker, WorkersModel } from "./workers.schema";
 
 class WorkersRepository {
 	async index(req: Request, res: Response): Promise<Response<TWorker[]>> {

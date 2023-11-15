@@ -24,7 +24,7 @@ const multer_1 = require("@config/multer");
 const index_1 = require("@core/index");
 const Files_1 = require("../Files");
 const Users_1 = require("../Users");
-const Workers_schema_1 = require("./Workers.schema");
+const workers_schema_1 = require("./workers.schema");
 class WorkersRepository {
     index(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -34,7 +34,7 @@ class WorkersRepository {
                 if (query.barberId) {
                     filters.barber = query.barberId;
                 }
-                const workers = yield Workers_schema_1.WorkersModel.find(filters).populate({
+                const workers = yield workers_schema_1.WorkersModel.find(filters).populate({
                     path: "user",
                     populate: {
                         path: "avatar",
@@ -71,7 +71,7 @@ class WorkersRepository {
                     throw new index_1.HttpException(400, index_1.SYSTEM_ERRORS.USER_NOT_CREATED);
                 }
                 res.locals.workerUser = workerUser;
-                const worker = yield Workers_schema_1.WorkersModel.create({
+                const worker = yield workers_schema_1.WorkersModel.create({
                     user: workerUser._id,
                     barber: barber._id,
                 });
@@ -104,7 +104,7 @@ class WorkersRepository {
             try {
                 const { body, file } = yield (0, multer_1.handleSingleUploadFile)(req, res);
                 const workerId = req.params.id;
-                const worker = yield Workers_schema_1.WorkersModel.findOne({
+                const worker = yield workers_schema_1.WorkersModel.findOne({
                     _id: workerId,
                 });
                 if (!worker) {
@@ -141,7 +141,7 @@ class WorkersRepository {
                 if (!workerId) {
                     throw new index_1.HttpException(400, index_1.SYSTEM_ERRORS.WORKER_NOT_FOUND);
                 }
-                const deletedWorker = yield Workers_schema_1.WorkersModel.findByIdAndDelete(workerId);
+                const deletedWorker = yield workers_schema_1.WorkersModel.findByIdAndDelete(workerId);
                 if (!deletedWorker) {
                     throw new index_1.HttpException(400, index_1.SYSTEM_ERRORS.WORKER_NOT_FOUND);
                 }
