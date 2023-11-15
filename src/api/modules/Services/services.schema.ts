@@ -1,4 +1,4 @@
-import { InferSchemaType, Schema, Document } from "mongoose";
+import { Document, InferSchemaType, Model, Schema, model } from "mongoose";
 
 const uniqueValidator = require("mongoose-unique-validator");
 
@@ -50,4 +50,15 @@ ServicesSchema.methods.toJSON = function (): TService {
 	return { ...service, barberId: barber._id };
 };
 
-export { ServicesSchema, TService, IServiceDocument };
+interface IServiceMethods {}
+
+interface IServicesModel extends Model<IServiceDocument, {}, IServiceMethods> {}
+
+const ServicesModel: IServicesModel = model<IServiceDocument, IServicesModel>(
+	"Services",
+	ServicesSchema
+);
+
+export { IServicesModel, ServicesModel };
+
+export { IServiceDocument, ServicesSchema, TService };

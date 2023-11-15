@@ -2,13 +2,13 @@ import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
+import { TUser, UsersModel } from ".";
 import { TwilioRepository } from "../Twilio";
-import { TUser, UsersModel } from "../Users";
 
 class UsersRepository {
 	async index(_: Request, res: Response): Promise<Response<TUser[]>> {
 		try {
-			const users = await UsersModel.find().populate("avatar", '-_id');
+			const users = await UsersModel.find().populate("avatar", "-_id");
 
 			return res.status(200).json(users);
 		} catch (err: any) {

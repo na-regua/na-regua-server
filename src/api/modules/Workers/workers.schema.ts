@@ -1,4 +1,4 @@
-import mongoose, { InferSchemaType, Document } from "mongoose";
+import mongoose, { Document, InferSchemaType, Model, model } from "mongoose";
 
 const WorkersSchema = new mongoose.Schema(
 	{
@@ -25,4 +25,13 @@ type TWorker = InferSchemaType<typeof WorkersSchema>;
 
 interface IWorkerDocument extends TWorker, Document {}
 
-export { IWorkerDocument, TWorker, WorkersSchema };
+interface IWorkerMethods {}
+
+interface IWorkersModel extends Model<IWorkerDocument, {}, IWorkerMethods> {}
+
+const WorkersModel: IWorkersModel = model<IWorkerDocument, IWorkersModel>(
+	"Workers",
+	WorkersSchema
+);
+
+export { IWorkerDocument, IWorkersModel, TWorker, WorkersModel, WorkersSchema };

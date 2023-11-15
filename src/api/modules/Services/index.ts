@@ -1,4 +1,3 @@
-export * from "./Services.model";
 export * from "./Services.schema";
 export * from "./Services.controller";
 

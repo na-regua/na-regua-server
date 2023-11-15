@@ -1,4 +1,3 @@
-export * from "./Users.model";
 export * from "./Users.schema";
 export * from "./Users.controller";
 

@@ -4,6 +4,8 @@ import { compareSync, hashSync } from "bcryptjs";
 import { sign, verify } from "jsonwebtoken";
 import mongoose, { Document, InferSchemaType } from "mongoose";
 
+import { Model, model } from "mongoose";
+
 import isEmail from "validator/lib/isEmail";
 import TwilioClient from "../Twilio/Twilio.client";
 
@@ -172,4 +174,28 @@ UsersSchema.pre("save", async function (next) {
 	next();
 });
 
-export { IUserDocument, TOKEN_SECRET, TUser, UsersSchema };
+type TRoles = "admin" | "worker" | "custommer";
+
+interface IUsersModel extends Model<IUserDocument> {
+	findByCredentials: (
+		email: string,
+		password: string
+	) => Promise<IUserDocument>;
+	findByPhone: (phone: string) => Promise<IUserDocument>;
+	findByToken: (token: string) => Promise<IUserDocument>;
+}
+
+const UsersModel: IUsersModel = model<IUserDocument, IUsersModel>(
+	"Users",
+	UsersSchema
+);
+
+export {
+	IUserDocument,
+	IUsersModel,
+	TOKEN_SECRET,
+	TRoles,
+	TUser,
+	UsersModel,
+	UsersSchema,
+};

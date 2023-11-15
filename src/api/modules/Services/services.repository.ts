@@ -4,8 +4,7 @@ import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
 import { IBarberDocument } from "../Barbers";
-import { ServicesModel } from "./Services.model";
-import { IServiceDocument, TService } from "./Services.schema";
+import { IServiceDocument, ServicesModel, TService } from "./Services.schema";
 
 class ServicesRepository {
 	async index(req: Request, res: Response): Promise<Response<TService[]>> {
