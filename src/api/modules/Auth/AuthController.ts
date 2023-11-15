@@ -1,5 +1,4 @@
-import { BaseController } from "@core/BaseController/BaseController";
-import { ENDPOINTS } from "@core/Router";
+import { BaseController, ENDPOINTS } from "@core/index";
 import AuthRepository from "./AuthRepository";
 
 export class AuthController extends BaseController {

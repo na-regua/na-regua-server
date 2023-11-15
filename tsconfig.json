@@ -7,11 +7,12 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"outDir": "dist",
-		"baseUrl": ".",
+		"baseUrl": "./src",
 		"paths": {
-			"@api/*": ["./src/api/*"],
-			"@core/*": ["./src/core/*"],
-			"@config/*": ["./src/config/*"]
+			"@api/*": ["api/*"],
+			"@core/*": ["core/*"],
+			"@config/*": ["config/*"],
+			"@utils/*": ["utils/*"]
 		}
 	},
 	"include": ["./src/**/*"],

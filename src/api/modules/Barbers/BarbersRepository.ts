@@ -3,7 +3,7 @@ import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
-import { generateCodeByName } from "src/utils";
+import { generateCodeByName } from "@utils/index";
 import { FilesModel, TUploadedFile } from "../Files/FilesSchema";
 import { TwilioRepository } from "../Twilio";
 import { TUser, UsersModel } from "../Users";

@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node dist/app.js",
     "dev": "ts-node-dev -r tsconfig-paths/register src/app.ts",
-    "postinstall": "npx tsc",
-    "build": "npx tsc",
+    "postinstall": "npm run build",
+    "build": "npx tsc && npx tspath -f",
     "watch-node": "nodemon dist/src/app.js",
     "watch-ts": "npx tsc -w"
   },
