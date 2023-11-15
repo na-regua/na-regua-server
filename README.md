@@ -11,6 +11,8 @@ $ npm install
 $ npm run dev
 ```
 
+Check de dev.env file to see the environment variables needed to run the server.
+
 ## Deploy
 
 To deploy the application, run the following commands:
