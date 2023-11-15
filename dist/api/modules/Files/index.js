@@ -18,7 +18,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilesRepository = void 0;
-__exportStar(require("./Files.controller"), exports);
-var Files_repository_1 = require("./Files.repository");
-Object.defineProperty(exports, "FilesRepository", { enumerable: true, get: function () { return __importDefault(Files_repository_1).default; } });
-__exportStar(require("./Files.model"), exports);
+__exportStar(require("./FilesController"), exports);
+var FilesRepository_1 = require("./FilesRepository");
+Object.defineProperty(exports, "FilesRepository", { enumerable: true, get: function () { return __importDefault(FilesRepository_1).default; } });
+__exportStar(require("./FilesSchema"), exports);

@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Router = void 0;
 const modules_1 = require("@api/modules");
-const Services_controller_1 = __importDefault(require("@api/modules/Services/Services.controller"));
+const ServicesController_1 = __importDefault(require("@api/modules/Services/ServicesController"));
 class Router {
     constructor(app, apiPrefix) {
         this.app = app;
@@ -13,7 +13,7 @@ class Router {
     }
     initRoutes() {
         const barbersController = new modules_1.BarbersController();
-        const servicesController = new Services_controller_1.default();
+        const servicesController = new ServicesController_1.default();
         const usersController = new modules_1.UsersController();
         const authController = new modules_1.AuthController();
         const workersController = new modules_1.WorkersController();

@@ -4,11 +4,11 @@ import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
 import { generateCodeByName } from "src/utils";
-import { FilesModel, TUploadedFile } from "../Files/Files.model";
+import { FilesModel, TUploadedFile } from "../Files/FilesSchema";
 import { TwilioRepository } from "../Twilio";
 import { TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
-import { BarbersModel, IBarberDocument, TBarber } from "./Barbers.model";
+import { BarbersModel, IBarberDocument, TBarber } from "./BarbersSchema";
 
 class BarbersRepository {
 	async index(_: Request, res: Response): Promise<Response<TBarber[]>> {

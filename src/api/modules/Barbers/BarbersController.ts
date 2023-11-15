@@ -1,7 +1,7 @@
 import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
 import { AuthRepository } from "../Auth";
-import BarbersRepository from "./Barbers.repository";
+import BarbersRepository from "./BarbersRepository";
 
 export class BarbersController extends BaseController {
 	constructor() {

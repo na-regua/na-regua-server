@@ -18,7 +18,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WorkersRepository = void 0;
-__exportStar(require("./Workers.controller"), exports);
-__exportStar(require("./Workers.schema"), exports);
-var Workers_repository_1 = require("./Workers.repository");
-Object.defineProperty(exports, "WorkersRepository", { enumerable: true, get: function () { return __importDefault(Workers_repository_1).default; } });
+__exportStar(require("./WorkersController"), exports);
+__exportStar(require("./WorkersSchema"), exports);
+var WorkersRepository_1 = require("./WorkersRepository");
+Object.defineProperty(exports, "WorkersRepository", { enumerable: true, get: function () { return __importDefault(WorkersRepository_1).default; } });

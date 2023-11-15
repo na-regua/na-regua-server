@@ -1,6 +1,6 @@
 import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
-import AuthRepository from "./Auth.repository";
+import AuthRepository from "./AuthRepository";
 
 export class AuthController extends BaseController {
 	constructor() {

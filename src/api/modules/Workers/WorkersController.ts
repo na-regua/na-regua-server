@@ -1,6 +1,6 @@
 import { BaseController } from "@core/index";
 import { AuthRepository } from "../Auth";
-import WorkersRepository from "./Workers.repository";
+import WorkersRepository from "./WorkersRepository";
 import { multerUpload } from "@config/multer";
 import { ENDPOINTS } from "@core/Router";
 

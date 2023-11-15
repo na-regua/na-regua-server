@@ -25,16 +25,16 @@ const HttpException_1 = require("@core/HttpException/HttpException");
 const SystemErrors_1 = require("@core/SystemErrors/SystemErrors");
 const errorHandler_1 = require("@core/errorHandler/errorHandler");
 const utils_1 = require("src/utils");
-const Files_model_1 = require("../Files/Files.model");
+const FilesSchema_1 = require("../Files/FilesSchema");
 const Twilio_1 = require("../Twilio");
 const Users_1 = require("../Users");
 const Workers_1 = require("../Workers");
-const barbers_schema_1 = require("./barbers.schema");
+const BarbersSchema_1 = require("./BarbersSchema");
 class BarbersRepository {
     index(_, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const barbers = yield barbers_schema_1.BarbersModel.find();
+                const barbers = yield BarbersSchema_1.BarbersModel.find();
                 return res.status(200).json(barbers);
             }
             catch (err) {
@@ -129,7 +129,7 @@ class BarbersRepository {
                 const files = uploadedResult.files;
                 const createdFiles = [];
                 for (const thumb of files) {
-                    const file = yield Files_model_1.FilesModel.create({
+                    const file = yield FilesSchema_1.FilesModel.create({
                         filename: thumb.filename,
                         localPath: thumb.path,
                         url: `uploads/${thumb.filename}`,
@@ -137,7 +137,7 @@ class BarbersRepository {
                     createdFiles.push(file._id);
                 }
                 const [avatar, ...thumbs] = createdFiles.map((file) => file._id);
-                const barber = yield barbers_schema_1.BarbersModel.create(Object.assign({ code: (0, utils_1.generateCodeByName)(), thumbs,
+                const barber = yield BarbersSchema_1.BarbersModel.create(Object.assign({ code: (0, utils_1.generateCodeByName)(), thumbs,
                     avatar }, body));
                 if (!barber) {
                     throw new HttpException_1.HttpException(400, SystemErrors_1.SYSTEM_ERRORS.BARBER_NOT_CREATED);

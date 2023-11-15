@@ -5,7 +5,7 @@ import {
 	UsersController,
 	WorkersController,
 } from "@api/modules";
-import ServicesController from "@api/modules/Services/Services.controller";
+import ServicesController from "@api/modules/Services/ServicesController";
 import { Application } from "express";
 
 class Router {

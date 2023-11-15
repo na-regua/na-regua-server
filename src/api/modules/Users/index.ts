@@ -1,4 +1,4 @@
-export * from "./Users.schema";
-export * from "./Users.controller";
+export * from "./UsersSchema";
+export * from "./UsersController";
 
-export { default as UsersRepository } from "./Users.repository";
+export { default as UsersRepository } from "./UsersRepository";

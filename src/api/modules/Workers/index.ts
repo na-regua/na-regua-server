@@ -1,4 +1,4 @@
-export * from "./Workers.controller";
-export * from "./Workers.schema";
+export * from "./WorkersController";
+export * from "./WorkersSchema";
 
-export { default as WorkersRepository } from "./Workers.repository";
+export { default as WorkersRepository } from "./WorkersRepository";

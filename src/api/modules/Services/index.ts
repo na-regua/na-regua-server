@@ -1,4 +1,4 @@
-export * from "./Services.schema";
-export * from "./Services.controller";
+export * from "./ServicesSchema";
+export * from "./ServicesController";
 
-export { default as ServicesRepository } from "./Services.repository";
+export { default as ServicesRepository } from "./ServicesRepository";

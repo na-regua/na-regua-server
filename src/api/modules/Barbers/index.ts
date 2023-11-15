@@ -1,4 +1,4 @@
-export * from "./Barbers.controller";
-export * from "./Barbers.model";
+export * from "./BarbersController";
+export * from "./BarbersSchema";
 
-export { default as BarbersRepository } from "./Barbers.repository";
+export { default as BarbersRepository } from "./BarbersRepository";

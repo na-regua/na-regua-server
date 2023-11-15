@@ -8,7 +8,7 @@ import { SYSTEM_ERRORS } from "@core/index";
 import { Request, Response } from "express";
 import { IBarberDocument } from "../Barbers";
 import { IUserDocument } from "../Users";
-import { FilesModel, TFile, TUploadedFile } from "./Files.model";
+import { FilesModel, TFile, TUploadedFile } from "./FilesSchema";
 
 class FilesRepository {
 	async updateUserAvatar(req: Request, res: Response) {

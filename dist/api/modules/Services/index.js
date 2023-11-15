@@ -18,7 +18,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ServicesRepository = void 0;
-__exportStar(require("./Services.schema"), exports);
-__exportStar(require("./Services.controller"), exports);
-var Services_repository_1 = require("./Services.repository");
-Object.defineProperty(exports, "ServicesRepository", { enumerable: true, get: function () { return __importDefault(Services_repository_1).default; } });
+__exportStar(require("./ServicesSchema"), exports);
+__exportStar(require("./ServicesController"), exports);
+var ServicesRepository_1 = require("./ServicesRepository");
+Object.defineProperty(exports, "ServicesRepository", { enumerable: true, get: function () { return __importDefault(ServicesRepository_1).default; } });

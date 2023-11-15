@@ -1,5 +1,5 @@
 import { BaseController } from "@core/BaseController/BaseController";
-import ServicesRepository from "./Services.repository";
+import ServicesRepository from "./ServicesRepository";
 import { AuthRepository } from "../Auth";
 import { ENDPOINTS } from "@core/Router";
 

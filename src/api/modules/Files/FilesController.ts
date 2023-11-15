@@ -2,7 +2,7 @@ import { multerUpload } from "@config/multer";
 import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
 import { AuthRepository } from "../Auth";
-import FilesRepository from "./Files.repository";
+import FilesRepository from "./FilesRepository";
 
 export class FilesController extends BaseController {
 	constructor() {

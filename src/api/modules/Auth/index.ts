@@ -1,3 +1,3 @@
-export * from "./Auth.controller";
+export * from "./AuthController";
 
-export { default as AuthRepository } from "./Auth.repository";
+export { default as AuthRepository } from "./AuthRepository";
