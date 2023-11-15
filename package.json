@@ -4,7 +4,7 @@
   "description": "Na Régua servers",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/src/app.js",
+    "start": "node dist/app.js",
     "dev": "ts-node-dev -r tsconfig-paths/register src/app.ts",
     "postinstall": "npx tsc",
     "build": "npx tsc",
