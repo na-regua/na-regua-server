@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node dist/src/app.js",
     "dev": "ts-node-dev -r tsconfig-paths/register src/app.ts",
-    "postinstall": "tsc",
-    "build": "tsc",
+    "postinstall": "npx tsc",
+    "build": "npx tsc",
     "watch-node": "nodemon dist/src/app.js",
-    "watch-ts": "tsc -w"
+    "watch-ts": "npx tsc -w"
   },
   "repository": {
     "type": "git",
