@@ -122,7 +122,7 @@ class WorkersRepository {
 			const avatarFile = await FilesModel.findById(workerUser.avatar);
 
 			if (file && avatarFile) {
-				// TO DO - Delete old file from
+				// TO DO - Delete old file from storage
 
 				await avatarFile.updateOne({
 					filename: file.filename,
