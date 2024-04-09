@@ -2,7 +2,7 @@ import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
-import { TUser, UsersModel } from ".";
+import { IUserDocument, TUser, UsersModel } from ".";
 import { TwilioRepository } from "../Twilio";
 import { FilesModel, TUploadedFile } from "../Files";
 
@@ -44,6 +44,20 @@ class UsersRepository {
 		}
 	}
 
+	async update(req: Request, res: Response): Promise<Response<null>> {
+		try {
+			const user: IUserDocument = res.locals.user;
+
+			const body = req.body;
+
+			await user.updateOne(body);
+
+			return res.status(204).json(null);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
 	async delete(req: Request, res: Response): Promise<Response<null>> {
 		try {
 			const { id } = req.params;
@@ -57,8 +71,8 @@ class UsersRepository {
 			await user.deleteOne();
 
 			return res.status(204).json(null);
-		} catch (err: any) {
-			return errorHandler(err, res);
+		} catch (error) {
+			return errorHandler(error, res);
 		}
 	}
 

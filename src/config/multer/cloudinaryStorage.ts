@@ -17,4 +17,9 @@ const storage = new CloudinaryStorage({
 	},
 });
 
+export const cloudinaryDestroy: (
+	name: string,
+	cb?: () => void | Promise<void>
+) => Promise<void> = cloudinary.uploader.destroy;
+
 export const cloudinaryStorage = multer({ storage });

@@ -2,6 +2,7 @@ import { cloudinaryStorage, multerUpload } from "@config/multer";
 import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
 import UsersRepository from "./UsersRepository";
+import { AuthRepository } from "../Auth";
 
 export class UsersController extends BaseController {
 	constructor() {
@@ -12,6 +13,13 @@ export class UsersController extends BaseController {
 
 	defineRoutes(): void {
 		this.router.get(ENDPOINTS.USERS_LIST, UsersRepository.index);
+		
+		this.router.put(
+			ENDPOINTS.USERS_UPDATE,
+			AuthRepository.isAuthenticated,
+			UsersRepository.update
+		);
+
 		this.router.post(
 			ENDPOINTS.USERS_CREATE,
 			cloudinaryStorage.single("file"),

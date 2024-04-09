@@ -1,4 +1,4 @@
-import { multerUpload } from "@config/multer";
+import { cloudinaryStorage, multerUpload } from "@config/multer";
 import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
 import { AuthRepository } from "../Auth";
@@ -26,6 +26,7 @@ export class FilesController extends BaseController {
 
 		this.router.put(
 			ENDPOINTS.FILES_UPDATE_BARBER_AVATAR,
+			cloudinaryStorage.single("file"),
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			FilesRepository.updateBarberAvatar

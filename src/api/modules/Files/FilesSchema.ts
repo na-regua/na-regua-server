@@ -18,6 +18,10 @@ const FilesSchema = new Schema(
 			type: String,
 			required: true,
 		},
+		type: {
+			type: String,
+			required: true,
+		},
 	},
 	{
 		versionKey: false,
