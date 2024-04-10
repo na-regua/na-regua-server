@@ -1,4 +1,4 @@
-import { cloudinaryStorage, multerUpload } from "@config/multer";
+import { cloudinaryStorage } from "@config/multer";
 import { BaseController } from "@core/BaseController/BaseController";
 import { ENDPOINTS } from "@core/Router";
 import UsersRepository from "./UsersRepository";
@@ -13,7 +13,7 @@ export class UsersController extends BaseController {
 
 	defineRoutes(): void {
 		this.router.get(ENDPOINTS.USERS_LIST, UsersRepository.index);
-		
+
 		this.router.put(
 			ENDPOINTS.USERS_UPDATE,
 			AuthRepository.isAuthenticated,

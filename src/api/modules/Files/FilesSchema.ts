@@ -11,14 +11,14 @@ const FilesSchema = new Schema(
 		originalName: {
 			type: String,
 		},
-		localPath: {
-			type: String,
-		},
+		// localPath: {
+		// 	type: String,
+		// },
 		url: {
 			type: String,
 			required: true,
 		},
-		type: {
+		mimeType: {
 			type: String,
 			required: true,
 		},

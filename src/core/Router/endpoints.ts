@@ -22,7 +22,7 @@ export const ENDPOINTS = {
 	 * */
 	FILES_BARBER: "/files/barber",
 	FILES_USER: "/files/user",
-	FILES_UPDATE_USER: "/files/:id/user",
+	FILES_UPDATE_USER: "/files/:avatarId/user",
 	FILES_UPDATE_BARBER_AVATAR: "/files/:avatarId/barber/",
 	FILES_CREATE: "/files/",
 	/**

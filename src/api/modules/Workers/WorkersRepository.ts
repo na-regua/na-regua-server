@@ -5,6 +5,7 @@ import { IBarberDocument } from "../Barbers";
 import { FilesModel, TUploadedFile } from "../Files";
 import { IUserDocument, UsersModel } from "../Users";
 import { IWorkerDocument, TWorker, WorkersModel } from "./WorkersSchema";
+import { cloudinaryDestroy } from "@config/multer";
 
 class WorkersRepository {
 	async index(req: Request, res: Response): Promise<Response<TWorker[]>> {
@@ -122,16 +123,19 @@ class WorkersRepository {
 			const avatarFile = await FilesModel.findById(workerUser.avatar);
 
 			if (file && avatarFile) {
-				// TO DO - Delete old file from storage
-
-				await avatarFile.updateOne({
-					filename: file.filename,
-					localPath: file.path,
-					url: `uploads/${file.filename}`,
-				});
+				await Promise.all([
+					cloudinaryDestroy(avatarFile.filename),
+					avatarFile.updateOne({
+						originalName: file.originalname,
+						filename: file.filename,
+						url: file.path,
+					}),
+				]);
 			}
 
-			return res.status(201).json(workerUser);
+			const updatedWorkerUser = await UsersModel.findById(worker.user._id);
+
+			return res.status(201).json(updatedWorkerUser);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

@@ -42,7 +42,9 @@ class FilesRepository {
 				}),
 			]);
 
-			return res.status(204).json(null);
+			const updatedFile = await FilesModel.findById(avatarId);
+
+			return res.status(200).json(updatedFile);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -83,7 +85,9 @@ class FilesRepository {
 				}),
 			]);
 
-			return res.status(204).json(null);
+			const updatedFile = await FilesModel.findById(avatarId);
+
+			return res.status(200).json(updatedFile);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -104,7 +108,6 @@ class FilesRepository {
 				uploadedFiles.map(async (uploadedFile) => {
 					const createdFile = await FilesModel.create({
 						filename: uploadedFile.filename,
-						localPath: uploadedFile.path,
 						url: `uploads/${uploadedFile.filename}`,
 					});
 
