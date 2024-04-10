@@ -2,6 +2,7 @@ import {
 	AuthController,
 	BarbersController,
 	FilesController,
+	QueueController,
 	UsersController,
 	WorkersController,
 } from "@api/modules";
@@ -24,13 +25,15 @@ class Router {
 		const authController = new AuthController();
 		const workersController = new WorkersController();
 		const filesController = new FilesController();
+		const queueController = new QueueController();
 
-		this.app.use(`${this.apiPrefix}`, barbersController.router);
-		this.app.use(`${this.apiPrefix}`, servicesController.router);
-		this.app.use(`${this.apiPrefix}`, usersController.router);
-		this.app.use(`${this.apiPrefix}`, authController.router);
-		this.app.use(`${this.apiPrefix}`, workersController.router);
-		this.app.use(`${this.apiPrefix}`, filesController.router);
+		this.app.use(this.apiPrefix, barbersController.router);
+		this.app.use(this.apiPrefix, servicesController.router);
+		this.app.use(this.apiPrefix, usersController.router);
+		this.app.use(this.apiPrefix, authController.router);
+		this.app.use(this.apiPrefix, workersController.router);
+		this.app.use(this.apiPrefix, filesController.router);
+		this.app.use(this.apiPrefix, queueController.router);
 	}
 }
 

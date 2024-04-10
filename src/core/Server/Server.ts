@@ -2,8 +2,8 @@ import connection from "@config/connection/connection";
 import { json } from "body-parser";
 import cors from "cors";
 import express, { Application } from "express";
-import path from "path";
 import { Router } from "../Router/Router";
+import { sessionMiddleware } from "../sessionMiddleware/sessionMiddleware";
 
 class Server {
 	app!: Application;
@@ -25,6 +25,7 @@ class Server {
 	private middlewares(): void {
 		this.app.use(json());
 		this.app.use(cors());
+		this.app.use(sessionMiddleware);
 		// TO DO - static folder in future
 		// this.app.use(express.static(path.join(__dirname, "../../public")));
 	}
