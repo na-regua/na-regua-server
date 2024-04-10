@@ -226,6 +226,7 @@ class AuthRepository {
 				}
 
 				await barber.populate("avatar");
+				await barber.populate("thumbs");
 
 				response.barber = barber;
 			}

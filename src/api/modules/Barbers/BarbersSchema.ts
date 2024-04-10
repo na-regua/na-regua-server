@@ -6,6 +6,7 @@ import { Document, InferSchemaType, Schema, SchemaDefinition } from "mongoose";
 const uniqueValidator = require("mongoose-unique-validator");
 
 const serviceConfigDefinition: SchemaDefinition = {
+	
 	schedulesByDay: {
 		type: Number,
 		default: 4,

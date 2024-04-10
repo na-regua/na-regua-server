@@ -1,10 +1,10 @@
-import { handleMultipleUploadFile } from "@config/multer";
 import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
-import { Request, Response } from "express";
 import { generateCodeByName } from "@utils/index";
+import { Request, Response } from "express";
 import { FilesModel, TUploadedFile } from "../Files/FilesSchema";
+import { ServicesModel } from "../Services";
 import { TwilioRepository } from "../Twilio";
 import { TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
@@ -75,16 +75,23 @@ class BarbersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
 
-			// TODO search for it
-			// barber.workers.forEach(async (worker) => {
-			// 	await WorkersModel.findByIdAndDelete(worker);
-			// });
+			await barber.deleteOne().then(async () => {
+				for (const worker of barber.workers) {
+					await WorkersModel.findByIdAndDelete(worker._id);
+				}
 
-			// barber.services.forEach(async (service) => {
-			// 	await UsersModel.findByIdAndDelete(service);
-			// });
+				for (const service of barber.services) {
+					await ServicesModel.findByIdAndDelete(service._id);
+				}
 
-			await barber.deleteOne();
+				await FilesModel.findByIdAndDelete(barber.avatar._id);
+
+				for (const thumb of barber.thumbs) {
+					await FilesModel.findByIdAndDelete(thumb._id);
+				}
+			});
+
+			// TO DO - check delete users and workers logic
 
 			return res.status(204).json(null);
 		} catch (err: any) {
@@ -109,22 +116,16 @@ class BarbersRepository {
 		res: Response
 	): Promise<Response<{ barber: TBarber; user: TUser }>> {
 		try {
-			const uploadedResult = await handleMultipleUploadFile(req, res);
-
-			if (!uploadedResult.files || uploadedResult.files.length === 0) {
-				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
-			}
-
-			const { password, ...body } = uploadedResult.body;
-			const files = uploadedResult.files as TUploadedFile[];
+			const { password, ...body } = req.body;
+			const files = req.files as TUploadedFile[];
 
 			const createdFiles = [];
 
 			for (const thumb of files) {
 				const file = await FilesModel.create({
 					filename: thumb.filename,
-					localPath: thumb.path,
-					url: `uploads/${thumb.filename}`,
+					originalName: thumb.originalname,
+					url: thumb.path,
 				});
 
 				createdFiles.push(file._id);

@@ -2,6 +2,7 @@
 # local env files
 .env
 .vercel
+package-lock.json
 
 # dependencies
 

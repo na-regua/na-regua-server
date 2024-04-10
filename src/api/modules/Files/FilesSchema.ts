@@ -8,11 +8,17 @@ const FilesSchema = new Schema(
 			required: true,
 			unique: true,
 		},
-		localPath: {
+		originalName: {
+			type: String,
+		},
+		// localPath: {
+		// 	type: String,
+		// },
+		url: {
 			type: String,
 			required: true,
 		},
-		url: {
+		mimeType: {
 			type: String,
 			required: true,
 		},

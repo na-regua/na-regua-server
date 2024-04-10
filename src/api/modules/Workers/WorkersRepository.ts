@@ -1,11 +1,11 @@
-import { handleRemoveFile, handleSingleUploadFile } from "@config/multer";
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
 import { IBarberDocument } from "../Barbers";
-import { FilesModel } from "../Files";
+import { FilesModel, TUploadedFile } from "../Files";
 import { IUserDocument, UsersModel } from "../Users";
 import { IWorkerDocument, TWorker, WorkersModel } from "./WorkersSchema";
+import { cloudinaryDestroy } from "@config/multer";
 
 class WorkersRepository {
 	async index(req: Request, res: Response): Promise<Response<TWorker[]>> {
@@ -33,27 +33,20 @@ class WorkersRepository {
 
 	async create(req: Request, res: Response): Promise<Response<any>> {
 		try {
-			const { file, body: bodyFromReq } = await handleSingleUploadFile(
-				req,
-				res
-			);
+			const file = req.file as TUploadedFile;
 
 			if (!file) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
 
-			const { admin, ...body } = bodyFromReq;
+			const { admin, ...body } = req.body;
 
 			const barber: IBarberDocument = res.locals.barber;
 
-			if (!file) {
-				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
-			}
-
 			const avatarFile = await FilesModel.create({
 				filename: file.filename,
-				localPath: file.path,
-				url: `uploads/${file.filename}`,
+				originalName: file.originalname,
+				url: file.path,
 			});
 
 			body.avatar = avatarFile._id;
@@ -104,7 +97,8 @@ class WorkersRepository {
 
 	async update(req: Request, res: Response): Promise<Response<any>> {
 		try {
-			const { body, file } = await handleSingleUploadFile(req, res);
+			const body = req.body;
+			const file = req.file as TUploadedFile;
 
 			const workerId = req.params.id;
 
@@ -129,16 +123,19 @@ class WorkersRepository {
 			const avatarFile = await FilesModel.findById(workerUser.avatar);
 
 			if (file && avatarFile) {
-				await handleRemoveFile(avatarFile.localPath);
-
-				await avatarFile.updateOne({
-					filename: file.filename,
-					localPath: file.path,
-					url: `uploads/${file.filename}`,
-				});
+				await Promise.all([
+					cloudinaryDestroy(avatarFile.filename),
+					avatarFile.updateOne({
+						originalName: file.originalname,
+						filename: file.filename,
+						url: file.path,
+					}),
+				]);
 			}
 
-			return res.status(201).json(workerUser);
+			const updatedWorkerUser = await UsersModel.findById(worker.user._id);
+
+			return res.status(201).json(updatedWorkerUser);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

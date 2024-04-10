@@ -1,7 +1,4 @@
-import {
-	handleMultipleUploadFile,
-	handleSingleUploadFile,
-} from "@config/multer/";
+import { cloudinaryDestroy, handleMultipleUploadFile } from "@config/multer/";
 import { HttpException } from "@core/HttpException/HttpException";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { SYSTEM_ERRORS } from "@core/index";
@@ -24,7 +21,7 @@ class FilesRepository {
 				throw new HttpException(403, SYSTEM_ERRORS.FORBIDDEN);
 			}
 
-			const { file } = await handleSingleUploadFile(req, res);
+			const file = req.file as TUploadedFile;
 
 			if (!file) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
@@ -36,13 +33,18 @@ class FilesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
 
-			await avatarFile.updateOne({
-				localPath: file.path,
-				filename: file.filename,
-				url: `uploads/${file.filename}`,
-			});
+			await Promise.all([
+				cloudinaryDestroy(avatarFile.filename),
+				avatarFile.updateOne({
+					originalName: file.originalname,
+					filename: file.filename,
+					url: file.path,
+				}),
+			]);
 
-			return res.status(204).json(null);
+			const updatedFile = await FilesModel.findById(avatarId);
+
+			return res.status(200).json(updatedFile);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -62,7 +64,7 @@ class FilesRepository {
 				throw new HttpException(403, SYSTEM_ERRORS.FORBIDDEN);
 			}
 
-			const { file } = await handleSingleUploadFile(req, res);
+			const file = req.file as TUploadedFile;
 
 			if (!file) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_SENT);
@@ -74,13 +76,18 @@ class FilesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
 
-			await avatarFile.updateOne({
-				localPath: file.path,
-				filename: file.filename,
-				url: `uploads/${file.filename}`,
-			});
+			await Promise.all([
+				cloudinaryDestroy(avatarFile.filename),
+				avatarFile.updateOne({
+					originalName: file.originalname,
+					filename: file.filename,
+					url: file.path,
+				}),
+			]);
 
-			return res.status(204).json(null);
+			const updatedFile = await FilesModel.findById(avatarId);
+
+			return res.status(200).json(updatedFile);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -101,7 +108,6 @@ class FilesRepository {
 				uploadedFiles.map(async (uploadedFile) => {
 					const createdFile = await FilesModel.create({
 						filename: uploadedFile.filename,
-						localPath: uploadedFile.path,
 						url: `uploads/${uploadedFile.filename}`,
 					});
 

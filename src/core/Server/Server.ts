@@ -25,7 +25,8 @@ class Server {
 	private middlewares(): void {
 		this.app.use(json());
 		this.app.use(cors());
-		this.app.use(express.static(path.join(__dirname, "../../public")));
+		// TO DO - static folder in future
+		// this.app.use(express.static(path.join(__dirname, "../../public")));
 	}
 
 	private async connectDB(): Promise<any> {
