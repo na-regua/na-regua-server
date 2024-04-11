@@ -49,7 +49,8 @@ const UsersSchema = new mongoose.Schema(
 		role: {
 			type: String,
 			required: true,
-			enum: ["admin", "worker", "custommer"],
+			enum: ["admin", "worker", "customer"],
+			default: "customer",
 		},
 		temporaryPassword: Boolean,
 		accessToken: String,

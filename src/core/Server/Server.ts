@@ -40,8 +40,8 @@ class Server {
 		}
 	}
 
-	listen(port: string | number): void {
-		this.app.listen(port, () => {
+	listen(port: string | number) {
+		return this.app.listen(port, () => {
 			console.log(`Server is running on port ${port}`);
 		});
 	}

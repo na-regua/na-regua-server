@@ -39,6 +39,7 @@ class FilesRepository {
 					originalName: file.originalname,
 					filename: file.filename,
 					url: file.path,
+					mimeType: file.mimetype,
 				}),
 			]);
 
@@ -82,6 +83,7 @@ class FilesRepository {
 					originalName: file.originalname,
 					filename: file.filename,
 					url: file.path,
+					mimeType: file.mimetype,
 				}),
 			]);
 

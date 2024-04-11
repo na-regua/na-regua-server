@@ -30,6 +30,7 @@ class UsersRepository {
 				filename: file.filename,
 				url: file.path,
 				originalName: file.originalname,
+				mimeType: file.mimetype,
 			});
 
 			body.avatar = avatarFile._id;

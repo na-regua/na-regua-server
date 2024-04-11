@@ -13,6 +13,24 @@ const QueueSchema = new Schema(
 			enum: ["on", "off", "paused"],
 			default: "on",
 		},
+		worker: {
+			type: Schema.Types.ObjectId,
+			ref: "Workers",
+		},
+		customers: {
+			type: [String],
+		},
+		schedules: {
+			type: [String],
+		},
+		totalCustomers: Number,
+		showServed: Boolean,
+		servedCustomers: {
+			type: [String],
+		},
+		missedCustomers: {
+			type: [String],
+		},
 	},
 	{
 		versionKey: false,

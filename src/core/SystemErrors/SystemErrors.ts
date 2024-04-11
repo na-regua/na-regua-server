@@ -19,6 +19,7 @@ export const SYSTEM_ERRORS = {
 	TOKEN_NOT_FOUND: "Token não encontrado!",
 	SERVICE_NOT_FOUND: "Serviço não encontrado!",
 	WORKER_NOT_FOUND: "Funcionário não encontrado!",
+	QUEUE_NOT_FOUND: "Fila não encontrada!",
 
 	WORKER_NOT_CREATED: "Não foi possível criar o Funcionário!",
 	SERVICE_NOT_CREATED: "Não foi possível criar o Serviço!",

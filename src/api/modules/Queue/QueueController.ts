@@ -9,6 +9,7 @@ class QueueController extends BaseController {
 	}
 
 	defineRoutes(): void {
+		this.router.get(ENDPOINTS.QUEUE_LIST, QueueRepository.index);
 		this.router.post(ENDPOINTS.QUEUE_CREATE, QueueRepository.create);
 	}
 }

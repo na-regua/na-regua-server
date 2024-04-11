@@ -1,7 +1,7 @@
 import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
-import { generateCodeByName } from "@utils/index";
+import { generateRandomCode } from "@utils/index";
 import { Request, Response } from "express";
 import { FilesModel, TUploadedFile } from "../Files/FilesSchema";
 import { ServicesModel } from "../Services";
@@ -126,6 +126,7 @@ class BarbersRepository {
 					filename: thumb.filename,
 					originalName: thumb.originalname,
 					url: thumb.path,
+					mimeType: thumb.mimetype,
 				});
 
 				createdFiles.push(file._id);
@@ -134,7 +135,7 @@ class BarbersRepository {
 			const [avatar, ...thumbs] = createdFiles.map((file) => file._id);
 
 			const barber = await BarbersModel.create({
-				code: generateCodeByName(),
+				code: generateRandomCode(),
 				thumbs,
 				avatar,
 				...body,

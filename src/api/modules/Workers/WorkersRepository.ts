@@ -47,6 +47,7 @@ class WorkersRepository {
 				filename: file.filename,
 				originalName: file.originalname,
 				url: file.path,
+				mimeType: file.mimetype,
 			});
 
 			body.avatar = avatarFile._id;
@@ -129,6 +130,7 @@ class WorkersRepository {
 						originalName: file.originalname,
 						filename: file.filename,
 						url: file.path,
+						mimeType: file.mimetype,
 					}),
 				]);
 			}

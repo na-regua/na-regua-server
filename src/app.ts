@@ -3,10 +3,11 @@ import { Server, SocketServer } from "./core";
 
 const PORT = process.env.PORT || 8080;
 const server = new Server();
-const socket = new SocketServer(server.app);
+
+const serverInstance = server.listen(PORT);
+
+const socket = new SocketServer(serverInstance);
 
 socket.start();
-
-server.listen(PORT);
 
 export { socket };
