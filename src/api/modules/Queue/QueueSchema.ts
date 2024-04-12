@@ -13,44 +13,92 @@ const QueueSchema = new Schema(
 			enum: ["on", "off", "paused"],
 			default: "on",
 		},
-		worker: {
-			type: Schema.Types.ObjectId,
+		workers: {
+			type: [Schema.Types.ObjectId],
 			ref: "Workers",
 		},
 		customers: {
-			type: [String],
+			type: [Schema.Types.ObjectId],
+			ref: "QueueCustomers",
 		},
 		schedules: {
 			type: [String],
 		},
-		totalCustomers: Number,
 		showServed: Boolean,
 		servedCustomers: {
-			type: [String],
+			type: [Schema.Types.ObjectId],
+			ref: "QueueCustomers",
 		},
 		missedCustomers: {
-			type: [String],
+			type: [Schema.Types.ObjectId],
+			ref: "QueueCustomers",
 		},
 	},
 	{
 		versionKey: false,
 		timestamps: true,
-		collection: "Queue",
+		collection: "Queues",
+		methods: {},
 	}
 );
 
 type TQueue = InferSchemaType<typeof QueueSchema>;
 
-interface IQueueDocument extends TQueue, Document {}
+interface IQueueDocument extends TQueue, Document {
+	populateCustomers(): Promise<void>;
+}
 
 QueueSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 
+QueueSchema.methods.populateCustomers = async function () {
+	const queue = this as IQueueDocument;
+
+	await queue.populate({
+		path: "customers",
+		populate: { path: "user service" },
+		options: {
+			sort: {
+				approved: 1,
+				position: 0,
+			},
+		},
+	});
+
+	await queue.populate("servedCustomers missedCustomers");
+};
+
+QueueSchema.statics.findLastPositionOfQueueCustomer = async function (
+	queueId: string
+): Promise<number> {
+	const model: IQueueModel = this as IQueueModel;
+	const queue = await model.findById(queueId);
+
+	await queue?.populateCustomers();
+
+	const approvedCustomers: any[] = (queue?.customers as any[]).filter(
+		(el) => el.approved === true
+	);
+
+	if (approvedCustomers && approvedCustomers.length > 0) {
+		console.log(approvedCustomers);
+		const lastCustomer = approvedCustomers.reduce((prev, curr) =>
+			prev.position > curr.position ? prev : curr
+		);
+
+		return lastCustomer.position;
+	}
+
+	return 0;
+};
+
 interface IQueueMethods {}
 
-interface IQueueModel extends Model<IQueueDocument, {}, IQueueMethods> {}
+interface IQueueModel extends Model<IQueueDocument, {}, IQueueMethods> {
+	findLastPositionOfQueueCustomer: (queueId: string) => Promise<number>;
+}
 
 const QueueModel: IQueueModel = model<IQueueDocument, IQueueModel>(
-	"Queue",
+	"Queues",
 	QueueSchema
 );
 

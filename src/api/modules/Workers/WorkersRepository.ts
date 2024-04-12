@@ -71,6 +71,10 @@ class WorkersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_CREATED);
 			}
 
+			await workerUser.updateOne({
+				worker: worker._id,
+			});
+
 			res.locals.worker = worker;
 
 			await barber.updateOne({

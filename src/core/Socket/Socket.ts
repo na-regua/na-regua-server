@@ -1,6 +1,18 @@
-import { QueueModel, UsersModel } from "@api/modules";
+import {
+	IUserDocument,
+	QueueCustomerModel,
+	QueueModel,
+	UsersModel,
+	WorkersModel,
+} from "@api/modules";
 import { Server, Socket } from "socket.io";
-import { HttpException, SYSTEM_ERRORS, sessionMiddleware } from "..";
+import {
+	HttpException,
+	ISocketEvent,
+	ISocketEventType,
+	SYSTEM_ERRORS,
+	sessionMiddleware,
+} from "..";
 
 class SocketServer {
 	app!: any;
@@ -34,6 +46,10 @@ class SocketServer {
 			if (!user) {
 				return next(new HttpException(400, SYSTEM_ERRORS.UNAUTHORIZED));
 			}
+
+			req.session.user = user;
+			req.session.save();
+
 			next();
 		});
 
@@ -46,74 +62,235 @@ class SocketServer {
 
 	onConnection() {
 		this.io.on("connection", (socket: Socket) => {
-			// socket.handshake.headers
-			console.log(`socket.io connected: ${socket.id}`);
+			const user = (socket.request as any).session.user;
 
-			this.onQueueEvents(socket);
+			this.onQueueEvents(socket, user);
 
-			socket.join(socket.id);
 			socket.on("disconnect", () => {
 				socket.leave(socket.id);
 			});
 		});
 	}
 
-	onQueueEvents(socket: Socket) {
+	onQueueEvents(socket: Socket, userAuth: IUserDocument) {
+		socket.on("queue/joinWorker", async (data) => {
+			const { code } = data;
+			const workerId = userAuth.worker?._id.toString();
+
+			const queue = await QueueModel.findOne({ code });
+
+			if (!queue) {
+				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
+				return;
+			}
+
+			await queue?.populate("workers");
+
+			if (!queue.workers.some((worker) => worker._id.toString() === workerId)) {
+				this.emitSocketEvent({ socket }, "WORKER_NOT_OWNER");
+				return;
+			}
+
+			const worker = await WorkersModel.findById(workerId).populate("user");
+
+			await socket.join(queue._id.toString());
+
+			// emit queue data to worker
+			await queue.populateCustomers();
+
+			socket.emit("queue/queueData", { queue });
+
+			// emit event to user
+			this.emitSocketEvent({ room: queue._id.toString() }, "WORKER_JOINED_QUEUE", {
+				worker,
+			});
+		});
+
 		socket.on("queue/joinUser", async (data) => {
-			console.log("queue/joinUser", data);
-			const { code, name } = data;
+			const { code, serviceId } = data;
 
-			const queueData = await QueueModel.findOne({ code }).populate("worker");
+			const queue = await QueueModel.findOne({ code });
 
-			if (!queueData) {
-				console.log("Queue not found");
-
+			if (!queue) {
+				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
 				return;
 			}
 
-			await socket.join(code);
-
-			// Emit to itself
-			socket.emit("queue/updateData", {
-				queueData,
+			const queueCustomer = await QueueCustomerModel.create({
+				queue: queue._id,
+				user: userAuth._id,
+				service: serviceId,
 			});
 
-			// Emit to room
-			socket.to(code).emit("queue/updateData", {
-				queueData,
-			});
-			socket.to(code).emit("queue/event", {
-				message: `${name} joined the queue`,
-			});
-		});
-
-		socket.on("queue/approveUser", async (data) => {
-			console.log("queue/approveUser", data);
-			const { code, userId } = data;
-
-			const queueData = await QueueModel.findOne({ code });
-			const user = await UsersModel.findById(userId);
-
-			if (!queueData) {
-				console.log("Queue not found");
-
+			if (!queueCustomer) {
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_CREATED");
 				return;
 			}
 
-			if (!user) {
-				console.log("User not found");
-
-				return;
-			}
-
-			socket.to(code).emit("queue/event", {
-				event: "APROVE_USER",
-				data: {
-					userId,
+			await queue.updateOne({
+				$push: {
+					customers: queueCustomer._id,
 				},
-				message: `User ${user.name} approved`,
+			});
+			await queue.save();
+
+			// Join queue room
+			await socket.join(queue._id.toString());
+			// Join queueCustomer room
+			await socket.join(queueCustomer._id.toString());
+
+			// Emit customerQueue data to user
+			socket.emit("queue/queueCustomerData", {
+				queueCustomer,
+			});
+			// Emit queueData to room
+			const updatedQueue = await QueueModel.findById(queue._id);
+			await updatedQueue?.populateCustomers();
+			this.io.to(queue._id.toString()).emit("queue/queueData", {
+				queue: updatedQueue,
 			});
 		});
+
+		socket.on("queue/approveCustomer", async (data) => {
+			const { code, customerId } = data;
+
+			const queue = await QueueModel.findOne({ code });
+
+			if (!queue) {
+				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
+				return;
+			}
+
+			await queue.populateCustomers();
+
+			const isOnQueue = queue.customers.some(
+				(el) => el._id.toString() === customerId
+			);
+
+			if (!isOnQueue) {
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_IN_QUEUE");
+				return;
+			}
+
+			const lastPosition = await QueueModel.findLastPositionOfQueueCustomer(
+				queue._id
+			);
+
+			const queueCustomer = await QueueCustomerModel.findByIdAndUpdate(
+				customerId,
+				{ approved: true, status: "queue", position: lastPosition + 1 }
+			);
+
+			if (!queueCustomer) {
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_FOUND");
+				return;
+			}
+
+			// Emit queueData to room
+			const updatedQueue = await QueueModel.findOne({ code });
+
+			if (updatedQueue) {
+				await updatedQueue.populateCustomers();
+
+				this.io.to(updatedQueue._id.toString()).emit("queue/queueData", {
+					queue: updatedQueue,
+				});
+			}
+
+			// Emit event to user
+			const updatedQueueCustomer = await QueueCustomerModel.findById(
+				customerId
+			);
+
+			this.emitSocketEvent(
+				{ room: queueCustomer._id.toString() },
+				"USER_APPROVED",
+				{
+					queueCustomer: updatedQueueCustomer,
+				}
+			);
+			this.io.to(queueCustomer._id.toString()).emit("queue/queueCustomerData", {
+				queueCustomer: updatedQueueCustomer,
+			});
+		});
+
+		socket.on("queue/denyCustomer", async (data) => {
+			const { code, customerId } = data;
+
+			const queue = await QueueModel.findOne({ code });
+
+			if (!queue) {
+				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
+				return;
+			}
+			await queue.populateCustomers();
+			const isOnQueue = queue.customers.some(
+				(el) => el._id.toString() === customerId
+			);
+			if (!isOnQueue) {
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_IN_QUEUE");
+				return;
+			}
+			// Remove queueCustomer from queue
+			await queue.updateOne({
+				$pull: {
+					customers: customerId,
+				},
+			});
+			await queue.save();
+
+			// Delete queueCustomer
+			await QueueCustomerModel.findByIdAndDelete(customerId);
+
+			// // Emit event to user
+			this.emitSocketEvent({ room: customerId }, "USER_DENIED");
+
+			// Emit updated queueData to room
+			const updatedQueue = await QueueModel.findOne({ code });
+			if (updatedQueue) {
+				await updatedQueue?.populateCustomers();
+
+				this.io.to(updatedQueue._id.toString()).emit("queue/queueData", {
+					queue: updatedQueue,
+				});
+			}
+		});
+
+		socket.on("queue/moveCustomerPosition", async (data) => {});
+
+		socket.on("queue/servedCustomer", async (data) => {});
+
+		socket.on("queue/missedCustomer", async (data) => {});
+
+		socket.on("queue/filters", async (data) => {});
+
+		socket.on("queue/pauseQueue", async (data) => {});
+
+		socket.on("queue/resumeQueue", async (data) => {});
+
+		socket.on("queue/finishQueue", async (data) => {});
+	}
+
+	emitSocketEvent(
+		sender: {
+			socket?: Socket;
+			room?: string;
+		},
+		event: ISocketEventType,
+		data?: any
+	) {
+		const eventData: ISocketEvent = {
+			event,
+			data,
+		};
+
+		if (sender.room) {
+			this.io.to(sender.room).emit("queue/events", eventData);
+		}
+
+		if (!sender.room && sender.socket) {
+			sender.socket.emit("queue/events", eventData);
+		}
 	}
 }
 

@@ -30,6 +30,11 @@ export enum ENDPOINTS {
 	QUEUE_JOIN = "/queue/join",
 	QUEUE_LIST = "/queue/",
 	/**
+	 * Queue Costumer
+	 * */
+	QUEUECOSTUMER_CREATE = "/queue-costumer/",
+	QUEUECOSTUMER_LIST = "/queue-costumer/",
+	/**
 	 * Services
 	 * */
 	SERVICES_LIST = "/services/",

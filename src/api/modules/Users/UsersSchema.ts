@@ -52,6 +52,10 @@ const UsersSchema = new mongoose.Schema(
 			enum: ["admin", "worker", "customer"],
 			default: "customer",
 		},
+		worker: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "Workers",
+		},
 		temporaryPassword: Boolean,
 		accessToken: String,
 		phoneConfirmed: {
