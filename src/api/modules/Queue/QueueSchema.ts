@@ -46,6 +46,8 @@ type TQueue = InferSchemaType<typeof QueueSchema>;
 
 interface IQueueDocument extends TQueue, Document {
 	populateCustomers(): Promise<void>;
+	hasCustomerOnQueue(customerId: string): boolean;
+	hasWorkerOnQueue(workerId: string): boolean;
 }
 
 QueueSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
@@ -53,6 +55,10 @@ QueueSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 QueueSchema.methods.populateCustomers = async function () {
 	const queue = this as IQueueDocument;
 
+	await queue.populate({
+		path: "workers",
+		populate: { path: "user" },
+	});
 	await queue.populate({
 		path: "customers",
 		populate: { path: "user service" },
@@ -65,6 +71,20 @@ QueueSchema.methods.populateCustomers = async function () {
 	});
 
 	await queue.populate("servedCustomers missedCustomers");
+};
+
+QueueSchema.methods.hasCustomerOnQueue = function (
+	customerId: string
+): boolean {
+	const queue = this as IQueueDocument;
+
+	return queue.customers.some((el) => el._id.toString() === customerId);
+};
+
+QueueSchema.methods.hasWorkerOnQueue = function (workerId: string): boolean {
+	const queue = this as IQueueDocument;
+
+	return queue.workers.some((el) => el._id.toString() === workerId);
 };
 
 QueueSchema.statics.findLastPositionOfQueueCustomer = async function (
@@ -80,7 +100,6 @@ QueueSchema.statics.findLastPositionOfQueueCustomer = async function (
 	);
 
 	if (approvedCustomers && approvedCustomers.length > 0) {
-		console.log(approvedCustomers);
 		const lastCustomer = approvedCustomers.reduce((prev, curr) =>
 			prev.position > curr.position ? prev : curr
 		);

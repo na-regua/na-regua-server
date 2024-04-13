@@ -13,6 +13,7 @@ const QueueCustumerSchema = new Schema(
 			ref: "Workers",
 		},
 		attendedAt: Date,
+		missedAt: Date,
 		queue: {
 			type: Schema.Types.ObjectId,
 			ref: "Queues",
@@ -22,7 +23,7 @@ const QueueCustumerSchema = new Schema(
 		},
 		status: {
 			type: String,
-			enum: ["pending", "queue", "missed", "attended"],
+			enum: ["pending", "queue", "missed", "served"],
 			default: "pending",
 		},
 		approved: { type: Boolean, default: false },

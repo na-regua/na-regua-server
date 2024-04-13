@@ -1,4 +1,5 @@
 import {
+	IQueueCustumerDocument,
 	IUserDocument,
 	QueueCustomerModel,
 	QueueModel,
@@ -84,6 +85,11 @@ class SocketServer {
 				return;
 			}
 
+			if (queue.status === "off") {
+				this.emitSocketEvent({ socket }, "QUEUE_OFF");
+				return;
+			}
+
 			await queue?.populate("workers");
 
 			if (!queue.workers.some((worker) => worker._id.toString() === workerId)) {
@@ -101,18 +107,27 @@ class SocketServer {
 			socket.emit("queue/queueData", { queue });
 
 			// emit event to user
-			this.emitSocketEvent({ room: queue._id.toString() }, "WORKER_JOINED_QUEUE", {
-				worker,
-			});
+			this.emitSocketEvent(
+				{ room: queue._id.toString() },
+				"WORKER_JOINED_QUEUE",
+				{
+					worker,
+				}
+			);
 		});
 
-		socket.on("queue/joinUser", async (data) => {
+		socket.on("queue/joinCustomer", async (data) => {
 			const { code, serviceId } = data;
 
 			const queue = await QueueModel.findOne({ code });
 
 			if (!queue) {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
+				return;
+			}
+
+			if (queue.status === "off") {
+				this.emitSocketEvent({ socket }, "QUEUE_OFF");
 				return;
 			}
 
@@ -149,6 +164,10 @@ class SocketServer {
 			this.io.to(queue._id.toString()).emit("queue/queueData", {
 				queue: updatedQueue,
 			});
+			this.emitSocketEvent(
+				{ room: queue._id.toString() },
+				"QUEUE_CUSTOMER_JOINED"
+			);
 		});
 
 		socket.on("queue/approveCustomer", async (data) => {
@@ -160,18 +179,30 @@ class SocketServer {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
 				return;
 			}
-
-			await queue.populateCustomers();
-
-			const isOnQueue = queue.customers.some(
-				(el) => el._id.toString() === customerId
-			);
-
-			if (!isOnQueue) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_IN_QUEUE");
+			// Check if user has worker
+			if (!userAuth.worker) {
+				this.emitSocketEvent({ socket }, "USER_IS_NOT_WORKER");
 				return;
 			}
+			// Check if worker is working at queue
+			const isWorkingAtQueue = queue.hasWorkerOnQueue(
+				userAuth.worker._id.toString()
+			);
 
+			if (!isWorkingAtQueue) {
+				this.emitSocketEvent({ socket }, "WORKER_IS_NOT_IN_QUEUE");
+				return;
+			}
+			// Check if customer is at queue
+			await queue.populateCustomers();
+
+			const isOnQueue = queue.hasCustomerOnQueue(customerId);
+
+			if (!isOnQueue) {
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_IS_NOT_IN_QUEUE");
+				return;
+			}
+			// Get lastPosition to approved customer
 			const lastPosition = await QueueModel.findLastPositionOfQueueCustomer(
 				queue._id
 			);
@@ -201,10 +232,9 @@ class SocketServer {
 			const updatedQueueCustomer = await QueueCustomerModel.findById(
 				customerId
 			);
-
 			this.emitSocketEvent(
 				{ room: queueCustomer._id.toString() },
-				"USER_APPROVED",
+				"QUEUE_CUSTOMER_APPROVED",
 				{
 					queueCustomer: updatedQueueCustomer,
 				}
@@ -223,12 +253,27 @@ class SocketServer {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
 				return;
 			}
-			await queue.populateCustomers();
-			const isOnQueue = queue.customers.some(
-				(el) => el._id.toString() === customerId
+			// Check if user has worker
+			if (!userAuth.worker) {
+				this.emitSocketEvent({ socket }, "USER_IS_NOT_WORKER");
+				return;
+			}
+			// Check if worker is working at queue
+			const isWorkingAtQueue = queue.hasWorkerOnQueue(
+				userAuth.worker._id.toString()
 			);
+
+			if (!isWorkingAtQueue) {
+				this.emitSocketEvent({ socket }, "WORKER_IS_NOT_IN_QUEUE");
+				return;
+			}
+			// Check if customer is at queue
+			await queue.populateCustomers();
+
+			const isOnQueue = queue.hasCustomerOnQueue(customerId);
+
 			if (!isOnQueue) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_IN_QUEUE");
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_IS_NOT_IN_QUEUE");
 				return;
 			}
 			// Remove queueCustomer from queue
@@ -243,7 +288,7 @@ class SocketServer {
 			await QueueCustomerModel.findByIdAndDelete(customerId);
 
 			// // Emit event to user
-			this.emitSocketEvent({ room: customerId }, "USER_DENIED");
+			this.emitSocketEvent({ room: customerId }, "QUEUE_CUSTOMER_DENIED");
 
 			// Emit updated queueData to room
 			const updatedQueue = await QueueModel.findOne({ code });
@@ -258,7 +303,108 @@ class SocketServer {
 
 		socket.on("queue/moveCustomerPosition", async (data) => {});
 
-		socket.on("queue/servedCustomer", async (data) => {});
+		socket.on("queue/serveCustomer", async (data) => {
+			const { code, customerId } = data;
+
+			const queue = await QueueModel.findOne({ code });
+
+			if (!queue) {
+				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
+				return;
+			}
+
+			if (queue.status === "off") {
+				this.emitSocketEvent({ socket }, "QUEUE_OFF");
+				return;
+			}
+
+			// Check if user has worker
+			if (!userAuth.worker) {
+				this.emitSocketEvent({ socket }, "USER_IS_NOT_WORKER");
+				return;
+			}
+
+			// Check if worker is working at queue
+			const isWorkingAtQueue = queue.hasWorkerOnQueue(
+				userAuth.worker._id.toString()
+			);
+
+			if (!isWorkingAtQueue) {
+				this.emitSocketEvent({ socket }, "WORKER_IS_NOT_IN_QUEUE");
+				return;
+			}
+
+			// Check if customer is at queue
+			const customerIsOnQueue = queue.hasCustomerOnQueue(customerId);
+
+			if (!customerIsOnQueue) {
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_IS_NOT_IN_QUEUE");
+				return;
+			}
+
+			// Get customer
+			const queueCustomer = await QueueCustomerModel.findById(customerId);
+
+			if (!queueCustomer) {
+				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_FOUND");
+				return;
+			}
+
+			// Update customer status
+			await queueCustomer.updateOne({
+				status: "served",
+				servedAt: new Date(),
+				servedBy: userAuth.worker._id,
+			});
+
+			await queue.updateOne({
+				$pull: {
+					customers: customerId,
+				},
+				$push: {
+					servedCustomers: customerId,
+				},
+			});
+
+			// Update remaining customers position
+			const remainingCustomers = await QueueCustomerModel.find({
+				queue: queue._id,
+				approved: true,
+				status: "queue",
+				position: { $gt: queueCustomer.position },
+			});
+
+			if (remainingCustomers) {
+				for (let customer of remainingCustomers) {
+					if (customer.position && customer.position > 0) {
+						await customer.updateOne({
+							position: customer.position - 1,
+						});
+					}
+				}
+			}
+
+			// Emit event to room
+			const updatedQueue = await QueueModel.findOne({ code });
+			if (updatedQueue) {
+				await updatedQueue.populateCustomers();
+				this.io.to(updatedQueue._id.toString()).emit("queue/queueData", {
+					queue: updatedQueue,
+				});
+				this.emitSocketEvent({ room: customerId }, "QUEUE_CUSTOMER_SERVED");
+			}
+
+			// Emit event to user
+			const updatedQueueCostumer = await QueueCustomerModel.findById(
+				customerId
+			);
+
+			if (updatedQueueCostumer) {
+				this.io.to(customerId).emit("queue/queueCustomerData", {
+					queueCustomer: updatedQueueCostumer,
+				});
+			}
+		});
 
 		socket.on("queue/missedCustomer", async (data) => {});
 
@@ -268,7 +414,69 @@ class SocketServer {
 
 		socket.on("queue/resumeQueue", async (data) => {});
 
-		socket.on("queue/finishQueue", async (data) => {});
+		socket.on("queue/finishQueue", async (data) => {
+			const { code } = data;
+
+			const queue = await QueueModel.findOne({ code });
+
+			if (!queue) {
+				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
+				return;
+			}
+
+			if (queue.status === "off") {
+				this.emitSocketEvent({ socket }, "QUEUE_OFF");
+				return;
+			}
+
+			// Check if user has worker
+			if (!userAuth.worker) {
+				this.emitSocketEvent({ socket }, "USER_IS_NOT_WORKER");
+				return;
+			}
+
+			// Check if worker is working at queue
+			const isWorkingAtQueue = queue.hasWorkerOnQueue(
+				userAuth.worker._id.toString()
+			);
+
+			if (!isWorkingAtQueue) {
+				this.emitSocketEvent({ socket }, "WORKER_IS_NOT_IN_QUEUE");
+				return;
+			}
+
+			// Finish queue
+			await queue.updateOne({
+				status: "off",
+			});
+
+			// Set not customers on queue as missed
+			const findCustomers = await QueueCustomerModel.find({
+				queue: queue._id,
+			});
+
+			if (findCustomers) {
+				for (let customer of findCustomers) {
+					await customer.updateOne({
+						status: "missed",
+						missedAt: new Date(),
+					});
+				}
+			}
+
+			// Get updated queue
+			const updatedQueue = await QueueModel.findOne({ code });
+
+			await updatedQueue?.populateCustomers();
+
+			// Emit event to workers
+			socket.emit("queue/queueData", { queue: updatedQueue });
+
+			// TO DO: Generate billing report and send to workers
+
+			// Emit event to room
+			this.emitSocketEvent({ room: queue._id.toString() }, "QUEUE_FINISHED");
+		});
 	}
 
 	emitSocketEvent(
