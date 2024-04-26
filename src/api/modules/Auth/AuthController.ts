@@ -12,13 +12,13 @@ export class AuthController extends BaseController {
 		this.router.post(ENDPOINTS.AUTH_LOGIN_EMAIL, AuthRepository.loginWithEmail);
 
 		this.router.post(
-			ENDPOINTS.AUTH_VERIFY_WHATSAPP,
-			AuthRepository.verifyWhatsappCode
+			ENDPOINTS.AUTH_VERIFY_CODE,
+			AuthRepository.verifyOTPCode
 		);
 
 		this.router.post(
-			ENDPOINTS.AUTH_SEND_WHATSAPP_CODE,
-			AuthRepository.sendWhatsappCode
+			ENDPOINTS.AUTH_SEND_CODE,
+			AuthRepository.sendOTPCode
 		);
 
 		this.router.get(

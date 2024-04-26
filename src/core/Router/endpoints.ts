@@ -3,8 +3,8 @@ export enum ENDPOINTS {
 	 * Auth
 	 * */
 	AUTH_LOGIN_EMAIL = "/auth/login/email",
-	AUTH_VERIFY_WHATSAPP = "/auth/verify/whatsapp",
-	AUTH_SEND_WHATSAPP_CODE = "/auth/send/whatsapp-code",
+	AUTH_VERIFY_CODE = "/auth/verify/code",
+	AUTH_SEND_CODE = "/auth/send/code",
 	AUTH_GET_CURRENT_USER = "/auth/me",
 	/**
 	 * Barbers
@@ -22,25 +22,27 @@ export enum ENDPOINTS {
 	FILES_USER = "/files/user",
 	FILES_UPDATE_USER = "/files/:avatarId/user",
 	FILES_UPDATE_BARBER_AVATAR = "/files/:avatarId/barber/",
+	FILES_UPDATE_BARBER_THUMB = "/files/barber/thumb/:thumbId",
+	FILES_UPLOAD_BARBER_THUMBS = '/files/barber/thumb/',
+  FILES_DELETE_BARBER_THUMBS = '/files/barber/thumb/:thumbId',
 	FILES_CREATE = "/files/",
 	/**
 	 * Queue
 	 * */
-	QUEUE_CREATE = "/queue/",
-	QUEUE_JOIN = "/queue/join",
-	QUEUE_LIST = "/queue/",
+	QUEUE_CREATE = "/queues/",
+	QUEUE_LIST = "/queues/",
 	/**
-	 * Queue Costumer
+	 * Customer
 	 * */
-	QUEUECOSTUMER_CREATE = "/queue-costumer/",
-	QUEUECOSTUMER_LIST = "/queue-costumer/",
+	CUSTOMER_CREATE = "/customers/",
+	CUSTOMER_LIST = "/customers/",
 	/**
 	 * Services
 	 * */
 	SERVICES_LIST = "/services/",
-	SERVICES_UPDATE = "/services/:id",
+	SERVICES_UPDATE = "/services/:serviceId",
 	SERVICES_CREATE = "/services/",
-	SERVICES_DELETE = "/services/:id",
+	SERVICES_DELETE = "/services/:serviceId",
 	/**
 	 * Users
 	 * */

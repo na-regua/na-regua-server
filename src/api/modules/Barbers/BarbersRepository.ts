@@ -3,12 +3,12 @@ import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { generateRandomCode } from "@utils/index";
 import { Request, Response } from "express";
-import { FilesModel, TUploadedFile } from "../Files/FilesSchema";
+import { FilesModel, IFileDocument, TUploadedFile } from "../Files/FilesSchema";
 import { ServicesModel } from "../Services";
-import { TwilioRepository } from "../Twilio";
 import { TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
 import { BarbersModel, IBarberDocument, TBarber } from "./BarbersSchema";
+import { cloudinaryDestroy } from "@config/multer";
 
 class BarbersRepository {
 	async index(_: Request, res: Response): Promise<Response<TBarber[]>> {
@@ -75,23 +75,35 @@ class BarbersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
 
+			await barber.populateAll();
+
 			await barber.deleteOne().then(async () => {
-				for (const worker of barber.workers) {
+				const workers = await WorkersModel.find({ barber: barber._id });
+
+				for (const worker of workers) {
 					await WorkersModel.findByIdAndDelete(worker._id);
 				}
 
-				for (const service of barber.services) {
+				const services = await ServicesModel.find({ barber: barber._id });
+
+				for (const service of services) {
 					await ServicesModel.findByIdAndDelete(service._id);
 				}
 
-				await FilesModel.findByIdAndDelete(barber.avatar._id);
+				const avatar = await FilesModel.findById(barber.avatar);
 
-				for (const thumb of barber.thumbs) {
-					await FilesModel.findByIdAndDelete(thumb._id);
+				if (avatar) {
+					await avatar.deleteOne();
+					await cloudinaryDestroy(avatar.filename);
+				}
+
+				const thumbs = await FilesModel.find({ _id: { $in: barber.thumbs } });
+
+				for (const thumb of thumbs) {
+					await thumb.deleteOne();
+					await cloudinaryDestroy(thumb.filename);
 				}
 			});
-
-			// TO DO - check delete users and workers logic
 
 			return res.status(204).json(null);
 		} catch (err: any) {
@@ -103,7 +115,9 @@ class BarbersRepository {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 
-			await barber.save();
+			await barber.updateOne({
+				profileStatus: "completed",
+			});
 
 			return res.status(204).json(null);
 		} catch (error) {
@@ -116,11 +130,16 @@ class BarbersRepository {
 		res: Response
 	): Promise<Response<{ barber: TBarber; user: TUser }>> {
 		try {
-			const { password, ...body } = req.body;
+			const { password, address, phone, ...body } = req.body;
 			const files = req.files as TUploadedFile[];
 
-			const createdFiles = [];
+			res.locals.cloudFiles = files;
 
+			const createdFiles = [];
+			const createdFilesSchema = [];
+			/*
+			 * Uploaded files to cloud service and create Files Scchema
+			 **/
 			for (const thumb of files) {
 				const file = await FilesModel.create({
 					filename: thumb.filename,
@@ -130,14 +149,24 @@ class BarbersRepository {
 				});
 
 				createdFiles.push(file._id);
+				createdFilesSchema.push(file);
+
+				res.locals.files = createdFilesSchema;
 			}
 
+			/*
+			 * Map avatar schema and thumb schema, all files via endpoint are the same, so the first should be the avatar file
+			 **/
 			const [avatar, ...thumbs] = createdFiles.map((file) => file._id);
+			const parsedAddress = JSON.parse(address);
+			const numPhone = +phone;
 
 			const barber = await BarbersModel.create({
 				code: generateRandomCode(),
 				thumbs,
 				avatar,
+				address: parsedAddress,
+				phone: numPhone,
 				...body,
 			});
 
@@ -145,8 +174,15 @@ class BarbersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_CREATED);
 			}
 
+			/*
+			 * All created variables will be setted to res.locals to be deleted if had an error
+			 **/
+
 			res.locals.barber = barber;
 
+			/*
+			 * Create the admin user for the barber login
+			 **/
 			const adminUser = await UsersModel.create({
 				name: barber.name,
 				email: barber.email,
@@ -162,6 +198,9 @@ class BarbersRepository {
 
 			res.locals.user = adminUser;
 
+			/*
+			 * Create the admin worker for the registry
+			 **/
 			const adminWorker = await WorkersModel.create({
 				user: adminUser._id,
 				barber: barber._id,
@@ -177,24 +216,42 @@ class BarbersRepository {
 
 			res.locals.worker = adminWorker;
 
-			barber.workers.push(adminWorker._id);
+			const accessToken = await adminUser.generateAuthToken();
 
-			await barber.save();
+			const updatedBarber = await BarbersModel.findByIdAndUpdate(barber._id);
 
-			await TwilioRepository.sendOTP(adminUser.phone);
-
-			return res.status(201).json({ barber, user: adminUser });
+			return res
+				.status(201)
+				.json({ barber: updatedBarber, user: adminUser, accessToken });
 		} catch (error) {
 			const { barber, user, worker } = res.locals;
+			const cloudFiles = res.locals.cloudFiles as TUploadedFile[];
+
+			const files = res.locals.files as IFileDocument[];
 
 			if (barber) {
 				await barber.deleteOne();
 			}
+
 			if (user) {
 				await user.deleteOne();
 			}
+
 			if (worker) {
 				await worker.deleteOne();
+			}
+
+			if (files) {
+				files.map(async (file) => {
+					await cloudinaryDestroy(file.filename);
+					await file.deleteOne();
+				});
+			}
+
+			if (cloudFiles) {
+				cloudFiles.forEach(async (file) => {
+					await cloudinaryDestroy(file.filename);
+				});
 			}
 
 			return errorHandler(error, res);

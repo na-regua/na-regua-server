@@ -31,5 +31,28 @@ export class FilesController extends BaseController {
 			AuthRepository.isAdmin,
 			FilesRepository.updateBarberAvatar
 		);
+
+		this.router.put(
+			ENDPOINTS.FILES_UPDATE_BARBER_THUMB,
+			cloudinaryStorage.single("file"),
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			FilesRepository.updateBarberThumb
+		);
+
+		this.router.post(
+			ENDPOINTS.FILES_UPLOAD_BARBER_THUMBS,
+			cloudinaryStorage.array("files", 3),
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			FilesRepository.uploadBarberThumbs
+		);
+
+		this.router.delete(
+			ENDPOINTS.FILES_DELETE_BARBER_THUMBS,
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			FilesRepository.deleteBarberThumb
+		);
 	}
 }

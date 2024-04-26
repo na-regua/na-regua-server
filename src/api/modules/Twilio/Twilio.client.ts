@@ -10,7 +10,7 @@ const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SERVICE_SID } =
 const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 class TwilioRepository {
-	async sendOTP(phone: string): Promise<VerificationInstance> {
+	async sendOTP(phone: number): Promise<VerificationInstance> {
 		try {
 			if (!TWILIO_SERVICE_SID) {
 				throw new HttpException(400, SYSTEM_ERRORS.UNAVAILABLE_MESSAGE_SERVICE);
@@ -31,7 +31,7 @@ class TwilioRepository {
 
 	async verifyOTP(
 		code: string,
-		phone: string
+		phone: number
 	): Promise<VerificationCheckInstance> {
 		try {
 			if (!TWILIO_SERVICE_SID) {

@@ -1,9 +1,9 @@
 import {
 	AuthController,
 	BarbersController,
+	CustomerController,
 	FilesController,
 	QueueController,
-	QueueCustomerController,
 	UsersController,
 	WorkersController,
 } from "@api/modules";
@@ -27,7 +27,7 @@ class Router {
 		const workersController = new WorkersController();
 		const filesController = new FilesController();
 		const queueController = new QueueController();
-		const queueCustomerController = new QueueCustomerController();
+		const customerController = new CustomerController();
 
 		this.app.use(this.apiPrefix, barbersController.router);
 		this.app.use(this.apiPrefix, servicesController.router);
@@ -36,7 +36,7 @@ class Router {
 		this.app.use(this.apiPrefix, workersController.router);
 		this.app.use(this.apiPrefix, filesController.router);
 		this.app.use(this.apiPrefix, queueController.router);
-		this.app.use(this.apiPrefix, queueCustomerController.router);
+		this.app.use(this.apiPrefix, customerController.router);
 	}
 }
 

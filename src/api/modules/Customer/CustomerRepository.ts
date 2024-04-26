@@ -1,20 +1,20 @@
 import { Request, Response } from "express";
 import { IUserDocument } from "../Users";
 import { errorHandler } from "@core/index";
-import { QueueCustomerModel } from "./QueueCustomerSchema";
+import { CustomerModel } from "./CustomerSchema";
 
-class QueueCustomerRepository {
+class CustomerRepository {
 	async index(req: Request, res: Response) {
 		try {
 			const params = req.query;
 
-			const queueCostumers = await QueueCustomerModel.find()
+			const customers = await CustomerModel.find()
 				.populate("user", "name email")
 				.populate("queue", "code")
-				.populate("attendedBy", "name email")
+				.populate("servedBy", "name email")
 				.sort({ createdAt: -1 });
 
-			return res.status(200).json(queueCostumers);
+			return res.status(200).json(customers);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -26,7 +26,7 @@ class QueueCustomerRepository {
 
 			const { queueId } = req.body;
 
-			const queueCostumer = await QueueCustomerModel.create({
+			const customer = await CustomerModel.create({
 				user: user._id,
 				queue: queueId,
 			});
@@ -38,4 +38,4 @@ class QueueCustomerRepository {
 	async delete(req: Request, res: Response) {}
 }
 
-export default new QueueCustomerRepository();
+export default new CustomerRepository();

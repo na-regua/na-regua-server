@@ -19,7 +19,7 @@ const QueueSchema = new Schema(
 		},
 		customers: {
 			type: [Schema.Types.ObjectId],
-			ref: "QueueCustomers",
+			ref: "Customers",
 		},
 		schedules: {
 			type: [String],
@@ -27,11 +27,11 @@ const QueueSchema = new Schema(
 		showServed: Boolean,
 		servedCustomers: {
 			type: [Schema.Types.ObjectId],
-			ref: "QueueCustomers",
+			ref: "Customers",
 		},
 		missedCustomers: {
 			type: [Schema.Types.ObjectId],
-			ref: "QueueCustomers",
+			ref: "Customers",
 		},
 	},
 	{

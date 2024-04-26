@@ -1,7 +1,6 @@
 import {
-	IQueueCustumerDocument,
 	IUserDocument,
-	QueueCustomerModel,
+	CustomerModel,
 	QueueModel,
 	UsersModel,
 	WorkersModel,
@@ -131,7 +130,7 @@ class SocketServer {
 				return;
 			}
 
-			const queueCustomer = await QueueCustomerModel.create({
+			const queueCustomer = await CustomerModel.create({
 				queue: queue._id,
 				user: userAuth._id,
 				service: serviceId,
@@ -207,7 +206,7 @@ class SocketServer {
 				queue._id
 			);
 
-			const queueCustomer = await QueueCustomerModel.findByIdAndUpdate(
+			const queueCustomer = await CustomerModel.findByIdAndUpdate(
 				customerId,
 				{ approved: true, status: "queue", position: lastPosition + 1 }
 			);
@@ -229,7 +228,7 @@ class SocketServer {
 			}
 
 			// Emit event to user
-			const updatedQueueCustomer = await QueueCustomerModel.findById(
+			const updatedQueueCustomer = await CustomerModel.findById(
 				customerId
 			);
 			this.emitSocketEvent(
@@ -285,7 +284,7 @@ class SocketServer {
 			await queue.save();
 
 			// Delete queueCustomer
-			await QueueCustomerModel.findByIdAndDelete(customerId);
+			await CustomerModel.findByIdAndDelete(customerId);
 
 			// // Emit event to user
 			this.emitSocketEvent({ room: customerId }, "QUEUE_CUSTOMER_DENIED");
@@ -301,7 +300,7 @@ class SocketServer {
 			}
 		});
 
-		socket.on("queue/moveCustomerPosition", async (data) => {});
+		socket.on("queue/moveCustomer", async (data) => {});
 
 		socket.on("queue/serveCustomer", async (data) => {
 			const { code, customerId } = data;
@@ -343,7 +342,7 @@ class SocketServer {
 			}
 
 			// Get customer
-			const queueCustomer = await QueueCustomerModel.findById(customerId);
+			const queueCustomer = await CustomerModel.findById(customerId);
 
 			if (!queueCustomer) {
 				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_FOUND");
@@ -367,7 +366,7 @@ class SocketServer {
 			});
 
 			// Update remaining customers position
-			const remainingCustomers = await QueueCustomerModel.find({
+			const remainingCustomers = await CustomerModel.find({
 				queue: queue._id,
 				approved: true,
 				status: "queue",
@@ -395,7 +394,7 @@ class SocketServer {
 			}
 
 			// Emit event to user
-			const updatedQueueCostumer = await QueueCustomerModel.findById(
+			const updatedQueueCostumer = await CustomerModel.findById(
 				customerId
 			);
 
@@ -406,7 +405,7 @@ class SocketServer {
 			}
 		});
 
-		socket.on("queue/missedCustomer", async (data) => {});
+		socket.on("queue/missCustomer", async (data) => {});
 
 		socket.on("queue/filters", async (data) => {});
 
@@ -451,7 +450,7 @@ class SocketServer {
 			});
 
 			// Set not customers on queue as missed
-			const findCustomers = await QueueCustomerModel.find({
+			const findCustomers = await CustomerModel.find({
 				queue: queue._id,
 			});
 
