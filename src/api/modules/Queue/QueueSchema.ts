@@ -1,4 +1,4 @@
-import { InferSchemaType, Model, Schema, Document, model } from "mongoose";
+import { Document, InferSchemaType, Model, Schema, model } from "mongoose";
 const uniqueValidator = require("mongoose-unique-validator");
 
 const QueueSchema = new Schema(
@@ -17,21 +17,21 @@ const QueueSchema = new Schema(
 			type: [Schema.Types.ObjectId],
 			ref: "Workers",
 		},
-		customers: {
+		tickets: {
 			type: [Schema.Types.ObjectId],
-			ref: "Customers",
+			ref: "Tickets",
 		},
 		schedules: {
 			type: [String],
 		},
 		showServed: Boolean,
-		servedCustomers: {
+		servedTickets: {
 			type: [Schema.Types.ObjectId],
-			ref: "Customers",
+			ref: "Tickets",
 		},
-		missedCustomers: {
+		missedTicket: {
 			type: [Schema.Types.ObjectId],
-			ref: "Customers",
+			ref: "Tickets",
 		},
 	},
 	{
@@ -45,14 +45,14 @@ const QueueSchema = new Schema(
 type TQueue = InferSchemaType<typeof QueueSchema>;
 
 interface IQueueDocument extends TQueue, Document {
-	populateCustomers(): Promise<void>;
-	hasCustomerOnQueue(customerId: string): boolean;
+	populateAll(): Promise<void>;
+	hasTicketOnQueue(ticketId: string): boolean;
 	hasWorkerOnQueue(workerId: string): boolean;
 }
 
 QueueSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 
-QueueSchema.methods.populateCustomers = async function () {
+QueueSchema.methods.populateAll = async function () {
 	const queue = this as IQueueDocument;
 
 	await queue.populate({
@@ -60,7 +60,7 @@ QueueSchema.methods.populateCustomers = async function () {
 		populate: { path: "user" },
 	});
 	await queue.populate({
-		path: "customers",
+		path: "tickets",
 		populate: { path: "user service" },
 		options: {
 			sort: {
@@ -70,15 +70,15 @@ QueueSchema.methods.populateCustomers = async function () {
 		},
 	});
 
-	await queue.populate("servedCustomers missedCustomers");
+	await queue.populate("servedTickets missedTickets");
 };
 
-QueueSchema.methods.hasCustomerOnQueue = function (
-	customerId: string
+QueueSchema.methods.hasTicketOnQueue = function (
+	ticketId: string
 ): boolean {
 	const queue = this as IQueueDocument;
 
-	return queue.customers.some((el) => el._id.toString() === customerId);
+	return queue.tickets.some((el) => el._id.toString() === ticketId);
 };
 
 QueueSchema.methods.hasWorkerOnQueue = function (workerId: string): boolean {
@@ -87,24 +87,39 @@ QueueSchema.methods.hasWorkerOnQueue = function (workerId: string): boolean {
 	return queue.workers.some((el) => el._id.toString() === workerId);
 };
 
-QueueSchema.statics.findLastPositionOfQueueCustomer = async function (
+QueueSchema.statics.findByCode = async function (
+	code: string
+): Promise<IQueueDocument | null> {
+	const model: IQueueModel = this as IQueueModel;
+	const queue = await model.findOne({ code, status: "on" });
+
+	if (!queue) {
+		return null;
+	}
+
+	await queue.populateAll();
+
+	return queue;
+};
+
+QueueSchema.statics.findLastPositionOfTicket = async function (
 	queueId: string
 ): Promise<number> {
 	const model: IQueueModel = this as IQueueModel;
 	const queue = await model.findById(queueId);
 
-	await queue?.populateCustomers();
+	await queue?.populateAll();
 
-	const approvedCustomers: any[] = (queue?.customers as any[]).filter(
+	const approvedTickets: any[] = (queue?.tickets as any[]).filter(
 		(el) => el.approved === true
 	);
 
-	if (approvedCustomers && approvedCustomers.length > 0) {
-		const lastCustomer = approvedCustomers.reduce((prev, curr) =>
+	if (approvedTickets && approvedTickets.length > 0) {
+		const lastTicket = approvedTickets.reduce((prev, curr) =>
 			prev.position > curr.position ? prev : curr
 		);
 
-		return lastCustomer.position;
+		return lastTicket.position;
 	}
 
 	return 0;
@@ -113,7 +128,8 @@ QueueSchema.statics.findLastPositionOfQueueCustomer = async function (
 interface IQueueMethods {}
 
 interface IQueueModel extends Model<IQueueDocument, {}, IQueueMethods> {
-	findLastPositionOfQueueCustomer: (queueId: string) => Promise<number>;
+	findLastPositionOfTicket: (queueId: string) => Promise<number>;
+	findByCode(code: string): Promise<IQueueDocument | null>;
 }
 
 const QueueModel: IQueueModel = model<IQueueDocument, IQueueModel>(
@@ -121,4 +137,4 @@ const QueueModel: IQueueModel = model<IQueueDocument, IQueueModel>(
 	QueueSchema
 );
 
-export { QueueModel, IQueueDocument, IQueueMethods, IQueueModel, TQueue };
+export { IQueueDocument, IQueueMethods, IQueueModel, QueueModel, TQueue };

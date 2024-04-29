@@ -16,6 +16,11 @@ export enum ENDPOINTS {
 	BARBERS_SIGN_UP = "/barbers/sign-up",
 	BARBERS_COMPLETE_PROFILE = "/barbers/complete-profile",
 	/**
+	 * Customer services
+	 * */
+	TICKET_CREATE = "/tickets/",
+	TICKET_LIST = "/tickets/",
+	/**
 	 * Files
 	 * */
 	FILES_BARBER = "/files/barber",
@@ -23,19 +28,20 @@ export enum ENDPOINTS {
 	FILES_UPDATE_USER = "/files/:avatarId/user",
 	FILES_UPDATE_BARBER_AVATAR = "/files/:avatarId/barber/",
 	FILES_UPDATE_BARBER_THUMB = "/files/barber/thumb/:thumbId",
-	FILES_UPLOAD_BARBER_THUMBS = '/files/barber/thumb/',
-  FILES_DELETE_BARBER_THUMBS = '/files/barber/thumb/:thumbId',
+	FILES_UPLOAD_BARBER_THUMBS = "/files/barber/thumb/",
+	FILES_DELETE_BARBER_THUMBS = "/files/barber/thumb/:thumbId",
 	FILES_CREATE = "/files/",
+	/**
+	 * Queue
+	 * */
+	NOTIFICATION_LIST_BY_USER = "/notifications",
+	NOTIFICATION_MARK_AS_VIEWED = "/notifications/:userId/:notificationId",
+	NOTIFICATION_MARK_ALL_AS_VIEWED = "/notifications/:userId",
 	/**
 	 * Queue
 	 * */
 	QUEUE_CREATE = "/queues/",
 	QUEUE_LIST = "/queues/",
-	/**
-	 * Customer
-	 * */
-	CUSTOMER_CREATE = "/customers/",
-	CUSTOMER_LIST = "/customers/",
 	/**
 	 * Services
 	 * */

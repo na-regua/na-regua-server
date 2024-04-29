@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
 import { IUserDocument } from "../Users";
 import { errorHandler } from "@core/index";
-import { CustomerModel } from "./CustomerSchema";
+import { TicketModel } from "./TicketSchema";
 
-class CustomerRepository {
+class TicketRepository {
 	async index(req: Request, res: Response) {
 		try {
 			const params = req.query;
 
-			const customers = await CustomerModel.find()
+			const customers = await TicketModel.find()
 				.populate("user", "name email")
 				.populate("queue", "code")
 				.populate("servedBy", "name email")
@@ -25,11 +25,6 @@ class CustomerRepository {
 			const user: IUserDocument = res.locals.user;
 
 			const { queueId } = req.body;
-
-			const customer = await CustomerModel.create({
-				user: user._id,
-				queue: queueId,
-			});
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -38,4 +33,4 @@ class CustomerRepository {
 	async delete(req: Request, res: Response) {}
 }
 
-export default new CustomerRepository();
+export default new TicketRepository();

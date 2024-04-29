@@ -2,7 +2,7 @@ import { Document, InferSchemaType, Model, Schema, model } from "mongoose";
 import { IQueueMethods } from "../Queue/QueueSchema";
 const uniqueValidator = require("mongoose-unique-validator");
 
-const CustumerSchema = new Schema(
+const TicketSchema = new Schema(
 	{
 		user: {
 			type: Schema.Types.ObjectId,
@@ -44,28 +44,21 @@ const CustumerSchema = new Schema(
 	{
 		versionKey: false,
 		timestamps: true,
-		collection: "Customers",
+		collection: "Tickets",
 	}
 );
 
-type TCustumer = InferSchemaType<typeof CustumerSchema>;
+type TTicket = InferSchemaType<typeof TicketSchema>;
 
-interface ICustumerDocument extends TCustumer, Document {}
+interface ITicketDocument extends TTicket, Document {}
 
-interface ICustumerMethods {}
+interface ITicketMethods {}
 
-interface ICustumerModel
-	extends Model<ICustumerDocument, {}, ICustumerMethods> {}
+interface ITicketModel extends Model<ITicketDocument, {}, ITicketMethods> {}
 
-const CustomerModel: ICustumerModel = model<ICustumerDocument, ICustumerModel>(
-	"Customers",
-	CustumerSchema
+const TicketModel: ITicketModel = model<ITicketDocument, ITicketModel>(
+	"Tickets",
+	TicketSchema
 );
 
-export {
-	CustomerModel,
-	ICustumerDocument,
-	ICustumerMethods,
-	ICustumerModel,
-	TCustumer,
-};
+export { TicketModel };

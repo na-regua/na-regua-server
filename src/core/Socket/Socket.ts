@@ -1,7 +1,7 @@
 import {
 	IUserDocument,
-	CustomerModel,
 	QueueModel,
+	TicketModel,
 	UsersModel,
 	WorkersModel,
 } from "@api/modules";
@@ -66,8 +66,10 @@ class SocketServer {
 
 			this.onQueueEvents(socket, user);
 
+			socket.join(user._id.toString());
+
 			socket.on("disconnect", () => {
-				socket.leave(socket.id);
+				socket.leave(user._id.toString());
 			});
 		});
 	}
@@ -77,19 +79,12 @@ class SocketServer {
 			const { code } = data;
 			const workerId = userAuth.worker?._id.toString();
 
-			const queue = await QueueModel.findOne({ code });
+			const queue = await QueueModel.findByCode(code);
 
 			if (!queue) {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
 				return;
 			}
-
-			if (queue.status === "off") {
-				this.emitSocketEvent({ socket }, "QUEUE_OFF");
-				return;
-			}
-
-			await queue?.populate("workers");
 
 			if (!queue.workers.some((worker) => worker._id.toString() === workerId)) {
 				this.emitSocketEvent({ socket }, "WORKER_NOT_OWNER");
@@ -99,9 +94,6 @@ class SocketServer {
 			const worker = await WorkersModel.findById(workerId).populate("user");
 
 			await socket.join(queue._id.toString());
-
-			// emit queue data to worker
-			await queue.populateCustomers();
 
 			socket.emit("queue/queueData", { queue });
 
@@ -115,64 +107,56 @@ class SocketServer {
 			);
 		});
 
-		socket.on("queue/joinCustomer", async (data) => {
+		socket.on("queue/joinUser", async (data) => {
 			const { code, serviceId } = data;
 
-			const queue = await QueueModel.findOne({ code });
+			const queue = await QueueModel.findByCode(code);
 
 			if (!queue) {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
 				return;
 			}
 
-			if (queue.status === "off") {
-				this.emitSocketEvent({ socket }, "QUEUE_OFF");
-				return;
-			}
-
-			const queueCustomer = await CustomerModel.create({
+			const ticket = await TicketModel.create({
 				queue: queue._id,
 				user: userAuth._id,
 				service: serviceId,
 			});
 
-			if (!queueCustomer) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_CREATED");
+			if (!ticket) {
+				this.emitSocketEvent({ socket }, "TICKET_NOT_CREATED");
 				return;
 			}
 
 			await queue.updateOne({
 				$push: {
-					customers: queueCustomer._id,
+					tickets: ticket._id,
 				},
 			});
 			await queue.save();
 
 			// Join queue room
 			await socket.join(queue._id.toString());
-			// Join queueCustomer room
-			await socket.join(queueCustomer._id.toString());
+			// Join ticket room
+			await socket.join(ticket._id.toString());
 
 			// Emit customerQueue data to user
-			socket.emit("queue/queueCustomerData", {
-				queueCustomer,
+			socket.emit("queue/ticketData", {
+				ticket,
 			});
 			// Emit queueData to room
 			const updatedQueue = await QueueModel.findById(queue._id);
-			await updatedQueue?.populateCustomers();
+			await updatedQueue?.populateAll();
 			this.io.to(queue._id.toString()).emit("queue/queueData", {
 				queue: updatedQueue,
 			});
-			this.emitSocketEvent(
-				{ room: queue._id.toString() },
-				"QUEUE_CUSTOMER_JOINED"
-			);
+			this.emitSocketEvent({ room: queue._id.toString() }, "USER_JOINED");
 		});
 
-		socket.on("queue/approveCustomer", async (data) => {
+		socket.on("queue/approveUser", async (data) => {
 			const { code, customerId } = data;
 
-			const queue = await QueueModel.findOne({ code });
+			const queue = await QueueModel.findByCode(code);
 
 			if (!queue) {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
@@ -193,26 +177,25 @@ class SocketServer {
 				return;
 			}
 			// Check if customer is at queue
-			await queue.populateCustomers();
+			await queue.populateAll();
 
-			const isOnQueue = queue.hasCustomerOnQueue(customerId);
+			const isOnQueue = queue.hasTicketOnQueue(customerId);
 
 			if (!isOnQueue) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_IS_NOT_IN_QUEUE");
+				this.emitSocketEvent({ socket }, "TICKET_IS_NOT_IN_QUEUE");
 				return;
 			}
 			// Get lastPosition to approved customer
-			const lastPosition = await QueueModel.findLastPositionOfQueueCustomer(
-				queue._id
-			);
+			const lastPosition = await QueueModel.findLastPositionOfTicket(queue._id);
 
-			const queueCustomer = await CustomerModel.findByIdAndUpdate(
-				customerId,
-				{ approved: true, status: "queue", position: lastPosition + 1 }
-			);
+			const ticketToApprove = await TicketModel.findByIdAndUpdate(customerId, {
+				approved: true,
+				status: "queue",
+				position: lastPosition + 1,
+			});
 
-			if (!queueCustomer) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_FOUND");
+			if (!ticketToApprove) {
+				this.emitSocketEvent({ socket }, "TICKET_NOT_FOUND");
 				return;
 			}
 
@@ -220,7 +203,7 @@ class SocketServer {
 			const updatedQueue = await QueueModel.findOne({ code });
 
 			if (updatedQueue) {
-				await updatedQueue.populateCustomers();
+				await updatedQueue.populateAll();
 
 				this.io.to(updatedQueue._id.toString()).emit("queue/queueData", {
 					queue: updatedQueue,
@@ -228,25 +211,26 @@ class SocketServer {
 			}
 
 			// Emit event to user
-			const updatedQueueCustomer = await CustomerModel.findById(
-				customerId
-			);
-			this.emitSocketEvent(
-				{ room: queueCustomer._id.toString() },
-				"QUEUE_CUSTOMER_APPROVED",
-				{
-					queueCustomer: updatedQueueCustomer,
-				}
-			);
-			this.io.to(queueCustomer._id.toString()).emit("queue/queueCustomerData", {
-				queueCustomer: updatedQueueCustomer,
-			});
+			const userTicket = await TicketModel.findById(customerId);
+
+			if (userTicket) {
+				this.emitSocketEvent(
+					{ room: userTicket._id.toString() },
+					"USER_APPROVED",
+					{
+						ticket: userTicket,
+					}
+				);
+				this.io.to(userTicket._id.toString()).emit("queue/ticketData", {
+					ticket: userTicket,
+				});
+			}
 		});
 
-		socket.on("queue/denyCustomer", async (data) => {
-			const { code, customerId } = data;
+		socket.on("queue/denyUser", async (data) => {
+			const { code, ticketId } = data;
 
-			const queue = await QueueModel.findOne({ code });
+			const queue = await QueueModel.findByCode(code);
 
 			if (!queue) {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
@@ -266,33 +250,32 @@ class SocketServer {
 				this.emitSocketEvent({ socket }, "WORKER_IS_NOT_IN_QUEUE");
 				return;
 			}
-			// Check if customer is at queue
-			await queue.populateCustomers();
+			// Check if has ticket in queue
+			await queue.populateAll();
 
-			const isOnQueue = queue.hasCustomerOnQueue(customerId);
+			const isOnQueue = queue.hasTicketOnQueue(ticketId);
 
 			if (!isOnQueue) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_IS_NOT_IN_QUEUE");
 				return;
 			}
 			// Remove queueCustomer from queue
 			await queue.updateOne({
 				$pull: {
-					customers: customerId,
+					tickets: ticketId,
 				},
 			});
 			await queue.save();
 
-			// Delete queueCustomer
-			await CustomerModel.findByIdAndDelete(customerId);
+			// Delete ticket
+			await TicketModel.findByIdAndDelete(ticketId);
 
-			// // Emit event to user
-			this.emitSocketEvent({ room: customerId }, "QUEUE_CUSTOMER_DENIED");
+			// Emit event to user
+			this.emitSocketEvent({ room: ticketId }, "USER_DENIED");
 
 			// Emit updated queueData to room
-			const updatedQueue = await QueueModel.findOne({ code });
+			const updatedQueue = await QueueModel.findByCode(code);
 			if (updatedQueue) {
-				await updatedQueue?.populateCustomers();
+				await updatedQueue?.populateAll();
 
 				this.io.to(updatedQueue._id.toString()).emit("queue/queueData", {
 					queue: updatedQueue,
@@ -300,20 +283,15 @@ class SocketServer {
 			}
 		});
 
-		socket.on("queue/moveCustomer", async (data) => {});
+		socket.on("queue/moveTicket", async (data) => {});
 
-		socket.on("queue/serveCustomer", async (data) => {
-			const { code, customerId } = data;
+		socket.on("queue/serveTicket", async (data) => {
+			const { code, ticketId } = data;
 
-			const queue = await QueueModel.findOne({ code });
+			const queue = await QueueModel.findByCode(code);
 
 			if (!queue) {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
-				return;
-			}
-
-			if (queue.status === "off") {
-				this.emitSocketEvent({ socket }, "QUEUE_OFF");
 				return;
 			}
 
@@ -334,23 +312,22 @@ class SocketServer {
 			}
 
 			// Check if customer is at queue
-			const customerIsOnQueue = queue.hasCustomerOnQueue(customerId);
+			const ticketOnQueue = queue.hasTicketOnQueue(ticketId);
 
-			if (!customerIsOnQueue) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_IS_NOT_IN_QUEUE");
+			if (!ticketOnQueue) {
 				return;
 			}
 
 			// Get customer
-			const queueCustomer = await CustomerModel.findById(customerId);
+			const ticket = await TicketModel.findById(ticketId);
 
-			if (!queueCustomer) {
-				this.emitSocketEvent({ socket }, "QUEUE_CUSTOMER_NOT_FOUND");
+			if (!ticket) {
+				this.emitSocketEvent({ socket }, "TICKET_NOT_FOUND");
 				return;
 			}
 
 			// Update customer status
-			await queueCustomer.updateOne({
+			await ticket.updateOne({
 				status: "served",
 				servedAt: new Date(),
 				servedBy: userAuth.worker._id,
@@ -358,23 +335,23 @@ class SocketServer {
 
 			await queue.updateOne({
 				$pull: {
-					customers: customerId,
+					tickets: ticketId,
 				},
 				$push: {
-					servedCustomers: customerId,
+					servedTickets: ticketId,
 				},
 			});
 
 			// Update remaining customers position
-			const remainingCustomers = await CustomerModel.find({
+			const remainingTickets = await TicketModel.find({
 				queue: queue._id,
 				approved: true,
 				status: "queue",
-				position: { $gt: queueCustomer.position },
+				position: { $gt: ticket.position },
 			});
 
-			if (remainingCustomers) {
-				for (let customer of remainingCustomers) {
+			if (remainingTickets) {
+				for (let customer of remainingTickets) {
 					if (customer.position && customer.position > 0) {
 						await customer.updateOne({
 							position: customer.position - 1,
@@ -383,29 +360,27 @@ class SocketServer {
 				}
 			}
 
-			// Emit event to room
+			// Emit event to queue room
 			const updatedQueue = await QueueModel.findOne({ code });
 			if (updatedQueue) {
-				await updatedQueue.populateCustomers();
+				await updatedQueue.populateAll();
 				this.io.to(updatedQueue._id.toString()).emit("queue/queueData", {
 					queue: updatedQueue,
 				});
-				this.emitSocketEvent({ room: customerId }, "QUEUE_CUSTOMER_SERVED");
+				this.emitSocketEvent({ room: ticketId }, "TICKET_SERVED");
 			}
 
 			// Emit event to user
-			const updatedQueueCostumer = await CustomerModel.findById(
-				customerId
-			);
+			const updatedTicket = await TicketModel.findById(ticketId);
 
-			if (updatedQueueCostumer) {
-				this.io.to(customerId).emit("queue/queueCustomerData", {
-					queueCustomer: updatedQueueCostumer,
+			if (updatedTicket) {
+				this.io.to(ticketId).emit("queue/ticketData", {
+					ticket: updatedTicket,
 				});
 			}
 		});
 
-		socket.on("queue/missCustomer", async (data) => {});
+		socket.on("queue/missTicket", async (data) => {});
 
 		socket.on("queue/filters", async (data) => {});
 
@@ -416,15 +391,10 @@ class SocketServer {
 		socket.on("queue/finishQueue", async (data) => {
 			const { code } = data;
 
-			const queue = await QueueModel.findOne({ code });
+			const queue = await QueueModel.findByCode(code);
 
 			if (!queue) {
 				this.emitSocketEvent({ socket }, "QUEUE_NOT_FOUND");
-				return;
-			}
-
-			if (queue.status === "off") {
-				this.emitSocketEvent({ socket }, "QUEUE_OFF");
 				return;
 			}
 
@@ -449,32 +419,34 @@ class SocketServer {
 				status: "off",
 			});
 
-			// Set not customers on queue as missed
-			const findCustomers = await CustomerModel.find({
+			// Set not served tickets on queue as missed
+			const tickets = await TicketModel.find({
 				queue: queue._id,
 			});
 
-			if (findCustomers) {
-				for (let customer of findCustomers) {
-					await customer.updateOne({
-						status: "missed",
-						missedAt: new Date(),
-					});
-				}
+			if (tickets) {
+				await Promise.all(
+					tickets.map((ticket) =>
+						ticket.updateOne({
+							status: "missed",
+							missedAt: new Date(),
+						})
+					)
+				);
 			}
 
 			// Get updated queue
-			const updatedQueue = await QueueModel.findOne({ code });
+			const updatedQueue = await QueueModel.findByCode(code);
 
-			await updatedQueue?.populateCustomers();
+			if (updatedQueue) {
+				// Emit event to workers
+				socket.emit("queue/queueData", { queue: updatedQueue });
 
-			// Emit event to workers
-			socket.emit("queue/queueData", { queue: updatedQueue });
+				// TO DO: Generate billing report and send to workers
 
-			// TO DO: Generate billing report and send to workers
-
-			// Emit event to room
-			this.emitSocketEvent({ room: queue._id.toString() }, "QUEUE_FINISHED");
+				// Emit event to room
+				this.emitSocketEvent({ room: queue._id.toString() }, "QUEUE_FINISHED");
+			}
 		});
 	}
 
