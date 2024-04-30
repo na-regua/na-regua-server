@@ -5,76 +5,6 @@ import { Document, InferSchemaType, Schema, SchemaDefinition } from "mongoose";
 
 const uniqueValidator = require("mongoose-unique-validator");
 
-const attendanceConfigDefinition: SchemaDefinition = {
-	workDays: {
-		type: [String],
-		enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-		default: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-	},
-	scheduleLimitDays: {
-		type: Number,
-		default: 30,
-		enum: [7, 15, 30],
-	},
-};
-
-const addressSchemaDefinition: SchemaDefinition = {
-	cep: {
-		type: String,
-		required: true,
-		match: [/^\d{5}-\d{3}$/, SYSTEM_ERRORS.INVALID_CEP],
-	},
-	city: {
-		type: String,
-		required: true,
-	},
-	uf: {
-		type: String,
-		required: true,
-	},
-	neighborhood: {
-		type: String,
-		required: true,
-	},
-	street: {
-		type: String,
-		required: true,
-	},
-	number: {
-		type: Number,
-		required: true,
-	},
-	complement: String,
-};
-
-const serviceConfigDefinition: SchemaDefinition = {
-	workTime: {
-		start: {
-			type: String,
-			default: "08:00",
-		},
-		end: {
-			type: String,
-			default: "17:00",
-		},
-	},
-	schedulesByDay: {
-		type: Number,
-		default: 4,
-		required: true,
-	},
-	scheduleTimes: {
-		type: [
-			{
-				time: {
-					type: String,
-					required: true,
-				},
-			},
-		],
-	},
-};
-
 const BarbersSchema = new Schema(
 	{
 		name: {
@@ -89,7 +19,37 @@ const BarbersSchema = new Schema(
 			required: true,
 			unique: true,
 		},
-		address: { type: addressSchemaDefinition, required: true },
+		address: {
+			type: {
+				cep: {
+					type: String,
+					required: true,
+					match: [/^\d{5}-\d{3}$/, SYSTEM_ERRORS.INVALID_CEP],
+				},
+				city: {
+					type: String,
+					required: true,
+				},
+				uf: {
+					type: String,
+					required: true,
+				},
+				neighborhood: {
+					type: String,
+					required: true,
+				},
+				street: {
+					type: String,
+					required: true,
+				},
+				number: {
+					type: Number,
+					required: true,
+				},
+				complement: String,
+			},
+			required: true,
+		},
 		phone: {
 			type: Number,
 			required: true,
@@ -118,9 +78,76 @@ const BarbersSchema = new Schema(
 			type: [Schema.Types.ObjectId],
 			ref: "Files",
 		},
-		attendanceConfig: attendanceConfigDefinition,
-		businessDaysConfig: serviceConfigDefinition,
-		holidaysConfig: serviceConfigDefinition,
+		attendanceConfig: {
+			type: {
+				workDays: {
+					type: [String],
+					enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+				},
+				scheduleLimitDays: {
+					type: Number,
+					enum: [7, 15, 30],
+				},
+			},
+			default: {
+				workDays: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+				scheduleLimitDays: 30,
+			},
+		},
+		businessDaysConfig: {
+			workTime: {
+				start: {
+					type: String,
+					default: "08:00",
+				},
+				end: {
+					type: String,
+					default: "17:00",
+				},
+			},
+			schedulesByDay: {
+				type: Number,
+				default: 4,
+				required: true,
+			},
+			scheduleTimes: {
+				type: [
+					{
+						time: {
+							type: String,
+							required: true,
+						},
+					},
+				],
+			},
+		},
+		holidaysConfig: {
+			workTime: {
+				start: {
+					type: String,
+					default: "08:00",
+				},
+				end: {
+					type: String,
+					default: "17:00",
+				},
+			},
+			schedulesByDay: {
+				type: Number,
+				default: 4,
+				required: true,
+			},
+			scheduleTimes: {
+				type: [
+					{
+						time: {
+							type: String,
+							required: true,
+						},
+					},
+				],
+			},
+		},
 	},
 	{
 		versionKey: false,

@@ -13,6 +13,10 @@ const QueueSchema = new Schema(
 			enum: ["on", "off", "paused"],
 			default: "on",
 		},
+		schedules: {
+			type: [Schema.Types.ObjectId],
+			ref: "Schedules",
+		},
 		workers: {
 			type: [Schema.Types.ObjectId],
 			ref: "Workers",
@@ -21,15 +25,11 @@ const QueueSchema = new Schema(
 			type: [Schema.Types.ObjectId],
 			ref: "Tickets",
 		},
-		schedules: {
-			type: [String],
-		},
-		showServed: Boolean,
-		servedTickets: {
+		serveds: {
 			type: [Schema.Types.ObjectId],
 			ref: "Tickets",
 		},
-		missedTicket: {
+		misseds: {
 			type: [Schema.Types.ObjectId],
 			ref: "Tickets",
 		},
@@ -73,9 +73,7 @@ QueueSchema.methods.populateAll = async function () {
 	await queue.populate("servedTickets missedTickets");
 };
 
-QueueSchema.methods.hasTicketOnQueue = function (
-	ticketId: string
-): boolean {
+QueueSchema.methods.hasTicketOnQueue = function (ticketId: string): boolean {
 	const queue = this as IQueueDocument;
 
 	return queue.tickets.some((el) => el._id.toString() === ticketId);

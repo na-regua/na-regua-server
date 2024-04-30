@@ -1,7 +1,7 @@
 import {
 	IUserDocument,
 	QueueModel,
-	TicketModel,
+	TicketsModel,
 	UsersModel,
 	WorkersModel,
 } from "@api/modules";
@@ -117,7 +117,7 @@ class SocketServer {
 				return;
 			}
 
-			const ticket = await TicketModel.create({
+			const ticket = await TicketsModel.create({
 				queue: queue._id,
 				user: userAuth._id,
 				service: serviceId,
@@ -188,7 +188,7 @@ class SocketServer {
 			// Get lastPosition to approved customer
 			const lastPosition = await QueueModel.findLastPositionOfTicket(queue._id);
 
-			const ticketToApprove = await TicketModel.findByIdAndUpdate(customerId, {
+			const ticketToApprove = await TicketsModel.findByIdAndUpdate(customerId, {
 				approved: true,
 				status: "queue",
 				position: lastPosition + 1,
@@ -211,7 +211,7 @@ class SocketServer {
 			}
 
 			// Emit event to user
-			const userTicket = await TicketModel.findById(customerId);
+			const userTicket = await TicketsModel.findById(customerId);
 
 			if (userTicket) {
 				this.emitSocketEvent(
@@ -267,7 +267,7 @@ class SocketServer {
 			await queue.save();
 
 			// Delete ticket
-			await TicketModel.findByIdAndDelete(ticketId);
+			await TicketsModel.findByIdAndDelete(ticketId);
 
 			// Emit event to user
 			this.emitSocketEvent({ room: ticketId }, "USER_DENIED");
@@ -319,7 +319,7 @@ class SocketServer {
 			}
 
 			// Get customer
-			const ticket = await TicketModel.findById(ticketId);
+			const ticket = await TicketsModel.findById(ticketId);
 
 			if (!ticket) {
 				this.emitSocketEvent({ socket }, "TICKET_NOT_FOUND");
@@ -342,23 +342,23 @@ class SocketServer {
 				},
 			});
 
-			// Update remaining customers position
-			const remainingTickets = await TicketModel.find({
-				queue: queue._id,
-				approved: true,
-				status: "queue",
-				position: { $gt: ticket.position },
-			});
+			//  Update remaining customers position
+			// const remainingTickets = await TicketsModel.find({
+			// 	queue: queue._id,
+			// 	approved: true,
+			// 	status: "queue",
+			// 	position: { $gt: ticket.position },
+			// });
 
-			if (remainingTickets) {
-				for (let customer of remainingTickets) {
-					if (customer.position && customer.position > 0) {
-						await customer.updateOne({
-							position: customer.position - 1,
-						});
-					}
-				}
-			}
+			// if (remainingTickets) {
+			// 	for (let customer of remainingTickets) {
+			// 		if (customer.position && customer.position > 0) {
+			// 			await customer.updateOne({
+			// 				position: customer.position - 1,
+			// 			});
+			// 		}
+			// 	}
+			// }
 
 			// Emit event to queue room
 			const updatedQueue = await QueueModel.findOne({ code });
@@ -371,7 +371,7 @@ class SocketServer {
 			}
 
 			// Emit event to user
-			const updatedTicket = await TicketModel.findById(ticketId);
+			const updatedTicket = await TicketsModel.findById(ticketId);
 
 			if (updatedTicket) {
 				this.io.to(ticketId).emit("queue/ticketData", {
@@ -420,7 +420,7 @@ class SocketServer {
 			});
 
 			// Set not served tickets on queue as missed
-			const tickets = await TicketModel.find({
+			const tickets = await TicketsModel.find({
 				queue: queue._id,
 			});
 
@@ -442,7 +442,7 @@ class SocketServer {
 				// Emit event to workers
 				socket.emit("queue/queueData", { queue: updatedQueue });
 
-				// TO DO: Generate billing report and send to workers
+				// TODO - Generate billing report and send to workers
 
 				// Emit event to room
 				this.emitSocketEvent({ room: queue._id.toString() }, "QUEUE_FINISHED");

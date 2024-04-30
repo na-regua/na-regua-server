@@ -26,7 +26,7 @@ class Server {
 		this.app.use(json());
 		this.app.use(cors());
 		this.app.use(sessionMiddleware);
-		// TO DO - static folder in future
+		// TODO - static folder in future
 		// this.app.use(express.static(path.join(__dirname, "../../public")));
 	}
 
