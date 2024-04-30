@@ -1,8 +1,6 @@
 import { Document, InferSchemaType, Model, Schema, model } from "mongoose";
-import { IQueueMethods } from "../Queue/QueueSchema";
-const uniqueValidator = require("mongoose-unique-validator");
 
-const TicketSchema = new Schema(
+const TicketsSchema = new Schema(
 	{
 		user: {
 			type: Schema.Types.ObjectId,
@@ -13,10 +11,6 @@ const TicketSchema = new Schema(
 			enum: ["pending", "queue", "scheduled", "missed", "served"],
 			default: "pending",
 		},
-		approved: { type: Boolean, default: false },
-		position: {
-			type: Number,
-		},
 		barber: {
 			type: Schema.Types.ObjectId,
 			ref: "Barbers",
@@ -26,14 +20,15 @@ const TicketSchema = new Schema(
 			ref: "Services",
 			required: true,
 		},
-		queue: {
+		queueTicket: {
 			type: Schema.Types.ObjectId,
-			ref: "Queues",
+			ref: "QueueTickets",
 		},
 		schedule: {
 			type: Schema.Types.ObjectId,
 			ref: "Schedules",
 		},
+		approved: { type: Boolean, default: false },
 		servedBy: {
 			type: Schema.Types.ObjectId,
 			ref: "Workers",
@@ -48,17 +43,17 @@ const TicketSchema = new Schema(
 	}
 );
 
-type TTicket = InferSchemaType<typeof TicketSchema>;
+type TTicket = InferSchemaType<typeof TicketsSchema>;
 
-interface ITicketDocument extends TTicket, Document {}
+interface ITicketsDocument extends TTicket, Document {}
 
-interface ITicketMethods {}
+interface ITicketsMethods {}
 
-interface ITicketModel extends Model<ITicketDocument, {}, ITicketMethods> {}
+interface ITicketsModel extends Model<ITicketsDocument, {}, ITicketsMethods> {}
 
-const TicketModel: ITicketModel = model<ITicketDocument, ITicketModel>(
+const TicketsModel: ITicketsModel = model<ITicketsDocument, ITicketsModel>(
 	"Tickets",
-	TicketSchema
+	TicketsSchema
 );
 
-export { TicketModel };
+export { TicketsModel, ITicketsDocument, TTicket };

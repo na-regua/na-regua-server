@@ -18,8 +18,8 @@ export enum ENDPOINTS {
 	/**
 	 * Customer services
 	 * */
-	TICKET_CREATE = "/tickets/",
-	TICKET_LIST = "/tickets/",
+	TICKETS_CREATE = "/tickets/",
+	TICKETS_LIST = "/tickets/",
 	/**
 	 * Files
 	 * */

@@ -15,6 +15,10 @@ const NotificationSchema = new Schema(
 			type: Boolean,
 			default: false,
 		},
+		icon: {
+			type: Schema.Types.ObjectId,
+			ref: "Files",
+		},
 	},
 	{
 		versionKey: false,

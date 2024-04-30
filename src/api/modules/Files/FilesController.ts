@@ -7,8 +7,6 @@ import FilesRepository from "./FilesRepository";
 export class FilesController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {

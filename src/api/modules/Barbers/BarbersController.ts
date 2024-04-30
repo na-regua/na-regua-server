@@ -7,8 +7,6 @@ import { cloudinaryStorage } from "@config/multer";
 export class BarbersController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {

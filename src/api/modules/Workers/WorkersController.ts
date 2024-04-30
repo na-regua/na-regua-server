@@ -7,8 +7,6 @@ import { ENDPOINTS } from "@core/Router";
 export class WorkersController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {

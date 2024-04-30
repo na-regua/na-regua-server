@@ -4,8 +4,6 @@ import QueueRepository from "./QueueRepository";
 class QueueController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {

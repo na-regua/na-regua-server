@@ -5,8 +5,6 @@ import NotificationsRepository from "./NotificationsRepository";
 class NotificationController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {

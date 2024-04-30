@@ -6,8 +6,6 @@ import { ENDPOINTS } from "@core/Router";
 class ServicesController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {

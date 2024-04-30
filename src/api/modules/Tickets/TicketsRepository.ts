@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
 import { IUserDocument } from "../Users";
 import { errorHandler } from "@core/index";
-import { TicketModel } from "./TicketSchema";
+import { TicketsModel } from "./TicketsSchema";
 
-class TicketRepository {
+class TicketsRepository {
 	async index(req: Request, res: Response) {
 		try {
 			const params = req.query;
 
-			const customers = await TicketModel.find()
+			const customers = await TicketsModel.find()
 				.populate("user", "name email")
 				.populate("queue", "code")
 				.populate("servedBy", "name email")
@@ -33,4 +33,4 @@ class TicketRepository {
 	async delete(req: Request, res: Response) {}
 }
 
-export default new TicketRepository();
+export default new TicketsRepository();
