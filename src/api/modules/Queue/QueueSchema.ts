@@ -13,13 +13,13 @@ const QueueSchema = new Schema(
 			enum: ["on", "off", "paused"],
 			default: "on",
 		},
-		schedules: {
-			type: [Schema.Types.ObjectId],
-			ref: "Schedules",
-		},
 		workers: {
 			type: [Schema.Types.ObjectId],
 			ref: "Workers",
+		},
+		schedules: {
+			type: [Schema.Types.ObjectId],
+			ref: "Tickets",
 		},
 		tickets: {
 			type: [Schema.Types.ObjectId],

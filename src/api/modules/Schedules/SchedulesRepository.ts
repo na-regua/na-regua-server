@@ -1,10 +1,9 @@
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { Request, Response } from "express";
-import { FilterQuery } from "mongoose";
 import { BarbersModel, IBarberDocument } from "../Barbers";
 import { ServicesModel } from "../Services";
+import { GetSchedulesFilters, TicketsModel } from "../Tickets";
 import { IUserDocument } from "../Users";
-import { ISchedulesDocument, SchedulesModel } from "./SchedulesSchema";
 
 export class SchedulesRepository {
 	async listByToken(req: Request, res: Response) {
@@ -13,20 +12,16 @@ export class SchedulesRepository {
 			const barber: IBarberDocument = res.locals.barber;
 
 			const from = req.query.from as string;
+			const to = req.query.to as string;
 
-			const filter: FilterQuery<ISchedulesDocument> = {
-				barber: barber._id,
+			const filter: GetSchedulesFilters = {
+				from,
+				to,
 			};
-
-			if (from) {
-				// For now it's filtering by date to 00:00 to 00:00 of the next day
-				filter.date = {
-					$gte: new Date(from),
-					$lt: new Date(from).setDate(new Date(from).getDate() + 1),
-				};
-			}
-
-			const scheduleTickets = await SchedulesModel.find(filter);
+			const scheduleTickets = await TicketsModel.getSchedules(
+				barber._id,
+				filter
+			);
 
 			return res.status(200).json({ schedules: scheduleTickets });
 		} catch (error) {
@@ -38,22 +33,21 @@ export class SchedulesRepository {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 
-			const from = req.query.from as string;
-
-			const barberLimit = barber.attendanceConfig.scheduleLimitDays || 7;
-			const fromDate = (from && new Date(from)) || new Date();
+			const barberLimit = barber.config?.scheduleLimitDays || 30;
+			const fromDate = new Date();
 			const limitDate = new Date(fromDate);
 			limitDate.setDate(limitDate.getDate() + barberLimit);
 
-			const filter: FilterQuery<ISchedulesDocument> = {
-				barber: barber._id,
-				date: {
-					$gte: fromDate,
-					$lt: limitDate,
-				},
+			const filters: GetSchedulesFilters = {
+				from: fromDate,
+				to: limitDate,
 			};
 
-			const scheduledDates = await SchedulesModel.distinct("date", filter);
+			const schedules = await TicketsModel.getSchedules(barber._id, filters);
+
+			const scheduledDates = schedules.map(
+				(schedule) => schedule.schedule?.date
+			);
 
 			return res.status(200).json({ scheduledDates });
 		} catch (error) {
@@ -83,12 +77,25 @@ export class SchedulesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
 			}
 
-			const schedule = await SchedulesModel.create({
-				user: user._id,
+			const isDateValid = await TicketsModel.isValidScheduleDate(
+				barber,
+				date,
+				time
+			);
+
+			if (!isDateValid) {
+				throw new HttpException(400, SYSTEM_ERRORS.INVALID_SCHEDULE_DATE);
+			}
+
+			const schedule = await TicketsModel.create({
+				customer: user._id,
 				barber: barberId,
 				service: serviceId,
-				date,
-				time,
+				type: "schedule",
+				schedule: {
+					date,
+					time,
+				},
 			});
 
 			if (!schedule) {

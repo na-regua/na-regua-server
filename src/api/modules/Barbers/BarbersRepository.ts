@@ -1,3 +1,4 @@
+import { cloudinaryDestroy } from "@config/multer";
 import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
@@ -8,7 +9,6 @@ import { ServicesModel } from "../Services";
 import { TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
 import { BarbersModel, IBarberDocument, TBarber } from "./BarbersSchema";
-import { cloudinaryDestroy } from "@config/multer";
 
 class BarbersRepository {
 	async index(_: Request, res: Response): Promise<Response<TBarber[]>> {
@@ -254,6 +254,22 @@ class BarbersRepository {
 				});
 			}
 
+			return errorHandler(error, res);
+		}
+	}
+
+	async openBarber(req: Request, res: Response): Promise<Response<null>> {
+		try {
+			return res.status(204).json(null);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async closeBarber(req: Request, res: Response): Promise<Response<null>> {
+		try {
+			return res.status(204).json(null);
+		} catch (error) {
 			return errorHandler(error, res);
 		}
 	}

@@ -45,5 +45,19 @@ export class BarbersController extends BaseController {
 			AuthRepository.isAdmin,
 			BarbersRepository.completeProfile
 		);
+
+		this.router.post(
+			ENDPOINTS.BARBERS_OPEN,
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			BarbersRepository.openBarber
+		);
+
+		this.router.post(
+			ENDPOINTS.BARBERS_CLOSE,
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			BarbersRepository.closeBarber
+		);
 	}
 }

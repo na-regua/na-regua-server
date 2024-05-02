@@ -1,9 +1,100 @@
 import { Model, model } from "mongoose";
 
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
-import { Document, InferSchemaType, Schema, SchemaDefinition } from "mongoose";
+import { Document, InferSchemaType, Schema } from "mongoose";
 
 const uniqueValidator = require("mongoose-unique-validator");
+
+const AddressSchema = new Schema(
+	{
+		cep: {
+			type: String,
+			required: true,
+			match: [/^\d{5}-\d{3}$/, SYSTEM_ERRORS.INVALID_CEP],
+		},
+		city: {
+			type: String,
+			required: true,
+		},
+		uf: {
+			type: String,
+			required: true,
+		},
+		neighborhood: {
+			type: String,
+			required: true,
+		},
+		street: {
+			type: String,
+			required: true,
+		},
+		number: {
+			type: Number,
+			required: true,
+		},
+		complement: String,
+	},
+	{ versionKey: false, timestamps: false, _id: false }
+);
+
+const getDayToWorkDays: Record<number, string> = {
+	0: "sun",
+	1: "mon",
+	2: "tue",
+	3: "wed",
+	4: "thu",
+	5: "fri",
+	6: "sat",
+};
+
+const AttendanceSchema = new Schema(
+	{
+		workDays: {
+			type: [String],
+			enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+			default: ["mon", "tue", "wed", "thu", "fri"],
+		},
+		workTime: {
+			start: {
+				type: String,
+				default: "08:00",
+			},
+			end: {
+				type: String,
+				default: "17:00",
+			},
+		},
+		openBarberAuto: {
+			type: Boolean,
+			default: false,
+		},
+		openQueueAuto: {
+			type: Boolean,
+			default: false,
+		},
+		scheduleLimitDays: {
+			type: Number,
+			enum: [7, 15, 30],
+			default: 30,
+		},
+		schedulesByDay: {
+			type: Number,
+			default: 4,
+			required: true,
+		},
+		scheduleTimes: {
+			type: [
+				{
+					time: {
+						type: String,
+						required: true,
+					},
+				},
+			],
+		},
+	},
+	{ versionKey: false, timestamps: false, _id: false }
+);
 
 const BarbersSchema = new Schema(
 	{
@@ -20,34 +111,7 @@ const BarbersSchema = new Schema(
 			unique: true,
 		},
 		address: {
-			type: {
-				cep: {
-					type: String,
-					required: true,
-					match: [/^\d{5}-\d{3}$/, SYSTEM_ERRORS.INVALID_CEP],
-				},
-				city: {
-					type: String,
-					required: true,
-				},
-				uf: {
-					type: String,
-					required: true,
-				},
-				neighborhood: {
-					type: String,
-					required: true,
-				},
-				street: {
-					type: String,
-					required: true,
-				},
-				number: {
-					type: Number,
-					required: true,
-				},
-				complement: String,
-			},
+			type: AddressSchema,
 			required: true,
 		},
 		phone: {
@@ -78,75 +142,12 @@ const BarbersSchema = new Schema(
 			type: [Schema.Types.ObjectId],
 			ref: "Files",
 		},
-		attendanceConfig: {
-			type: {
-				workDays: {
-					type: [String],
-					enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-				},
-				scheduleLimitDays: {
-					type: Number,
-					enum: [7, 15, 30],
-				},
-			},
-			default: {
-				workDays: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-				scheduleLimitDays: 30,
-			},
+		config: {
+			type: AttendanceSchema,
 		},
-		businessDaysConfig: {
-			workTime: {
-				start: {
-					type: String,
-					default: "08:00",
-				},
-				end: {
-					type: String,
-					default: "17:00",
-				},
-			},
-			schedulesByDay: {
-				type: Number,
-				default: 4,
-				required: true,
-			},
-			scheduleTimes: {
-				type: [
-					{
-						time: {
-							type: String,
-							required: true,
-						},
-					},
-				],
-			},
-		},
-		holidaysConfig: {
-			workTime: {
-				start: {
-					type: String,
-					default: "08:00",
-				},
-				end: {
-					type: String,
-					default: "17:00",
-				},
-			},
-			schedulesByDay: {
-				type: Number,
-				default: 4,
-				required: true,
-			},
-			scheduleTimes: {
-				type: [
-					{
-						time: {
-							type: String,
-							required: true,
-						},
-					},
-				],
-			},
+		open: {
+			type: Boolean,
+			default: false,
 		},
 	},
 	{
@@ -193,4 +194,11 @@ const BarbersModel: IBarbersModel = model<IBarberDocument, IBarbersModel>(
 	BarbersSchema
 );
 
-export { BarbersModel, BarbersSchema, IBarberDocument, IBarbersModel, TBarber };
+export {
+	BarbersModel,
+	BarbersSchema,
+	IBarberDocument,
+	IBarbersModel,
+	TBarber,
+	getDayToWorkDays,
+};

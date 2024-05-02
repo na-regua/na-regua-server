@@ -15,6 +15,8 @@ export enum ENDPOINTS {
 	BARBERS_DELETE = "/barbers/",
 	BARBERS_SIGN_UP = "/barbers/sign-up",
 	BARBERS_COMPLETE_PROFILE = "/barbers/complete-profile",
+	BARBERS_OPEN = "/barbers/open",
+	BARBERS_CLOSE = "/barbers/close",
 	/**
 	 * Tickets
 	 * */
