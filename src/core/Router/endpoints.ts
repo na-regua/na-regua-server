@@ -44,6 +44,7 @@ export enum ENDPOINTS {
 	 * */
 	QUEUE_CREATE = "/queues/",
 	QUEUE_LIST = "/queues/",
+	QUEUE_GET_TODAY = "/queues/today",
 
 	/**
 	 * QueueTickts

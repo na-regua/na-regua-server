@@ -6,8 +6,8 @@ const server = new Server();
 
 const serverInstance = server.listen(PORT);
 
-const socket = new SocketServer(serverInstance);
+const GlobalSocket = new SocketServer(serverInstance);
 
-socket.start();
+GlobalSocket.start();
 
-export { socket };
+export { GlobalSocket };

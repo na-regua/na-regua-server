@@ -1,6 +1,8 @@
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { Request, Response } from "express";
 import { BarbersModel, IBarberDocument } from "../Barbers";
+import { NotificationMessageType } from "../Notifications";
+import NotificationsRepository from "../Notifications/NotificationsRepository";
 import { ServicesModel } from "../Services";
 import { GetSchedulesFilters, TicketsModel } from "../Tickets";
 import { IUserDocument } from "../Users";
@@ -57,7 +59,6 @@ export class SchedulesRepository {
 
 	async create(req: Request, res: Response) {
 		try {
-			// TODO - verify if date and time is valid for the barber attendance config
 			const user: IUserDocument = res.locals.user;
 
 			const { barberId, serviceId, date, time } = req.body;
@@ -67,7 +68,7 @@ export class SchedulesRepository {
 			if (!barber) {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
-
+			
 			const service = await ServicesModel.findOne({
 				barber: barberId,
 				_id: serviceId,
@@ -76,7 +77,7 @@ export class SchedulesRepository {
 			if (!service) {
 				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
 			}
-
+			// verify if its a valid date and time
 			const isDateValid = await TicketsModel.isValidScheduleDate(
 				barber,
 				date,
@@ -87,10 +88,16 @@ export class SchedulesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.INVALID_SCHEDULE_DATE);
 			}
 
+			const isCustomer = barber.customers.find(
+				(customerId) => customerId.toString() === user._id.toString()
+			);
+
 			const schedule = await TicketsModel.create({
 				customer: user._id,
 				barber: barberId,
 				service: serviceId,
+				approved: isCustomer,
+				status: isCustomer ? "scheduled" : "pending",
 				type: "schedule",
 				schedule: {
 					date,
@@ -101,6 +108,22 @@ export class SchedulesRepository {
 			if (!schedule) {
 				throw new HttpException(400, SYSTEM_ERRORS.SCHEDULE_NOT_CREATED);
 			}
+
+			// Notify barber workers
+			const messageType: NotificationMessageType = isCustomer
+				? "CUSTOMER_SCHEDULED_APPOINTMENT"
+				: "USER_ASK_TO_SCHEDULE";
+
+			await NotificationsRepository.notifyBarberWorkers(
+				barberId,
+				messageType,
+				{
+					barber: barberId,
+					service: serviceId,
+					schedule: schedule._id,
+				},
+				user.avatar._id.toString()
+			);
 
 			return res.status(201).json(schedule);
 		} catch (error) {

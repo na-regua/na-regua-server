@@ -83,14 +83,7 @@ const AttendanceSchema = new Schema(
 			required: true,
 		},
 		scheduleTimes: {
-			type: [
-				{
-					time: {
-						type: String,
-						required: true,
-					},
-				},
-			],
+			type: [String],
 		},
 	},
 	{ versionKey: false, timestamps: false, _id: false }
@@ -148,6 +141,11 @@ const BarbersSchema = new Schema(
 		open: {
 			type: Boolean,
 			default: false,
+		},
+		customers: {
+			type: [Schema.Types.ObjectId],
+			ref: "Users",
+			default: [],
 		},
 	},
 	{

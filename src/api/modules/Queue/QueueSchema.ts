@@ -1,13 +1,16 @@
-import { Document, InferSchemaType, Model, Schema, model } from "mongoose";
+import { getTodayAndNextTo } from "@utils/date";
+import {
+	Document,
+	FilterQuery,
+	InferSchemaType,
+	Model,
+	Schema,
+	model,
+} from "mongoose";
 const uniqueValidator = require("mongoose-unique-validator");
 
 const QueueSchema = new Schema(
 	{
-		code: {
-			type: String,
-			required: true,
-			unique: true,
-		},
 		status: {
 			type: String,
 			enum: ["on", "off", "paused"],
@@ -16,6 +19,12 @@ const QueueSchema = new Schema(
 		workers: {
 			type: [Schema.Types.ObjectId],
 			ref: "Workers",
+			required: true,
+		},
+		barber: {
+			type: Schema.Types.ObjectId,
+			ref: "Barbers",
+			required: true,
 		},
 		schedules: {
 			type: [Schema.Types.ObjectId],
@@ -33,12 +42,22 @@ const QueueSchema = new Schema(
 			type: [Schema.Types.ObjectId],
 			ref: "Tickets",
 		},
+		finished: {
+			type: Boolean,
+			default: false,
+		},
+		finishedAt: {
+			type: Date,
+		},
+		finishedBy: {
+			type: Schema.Types.ObjectId,
+			ref: "Workers",
+		},
 	},
 	{
 		versionKey: false,
 		timestamps: true,
 		collection: "Queues",
-		methods: {},
 	}
 );
 
@@ -59,45 +78,18 @@ QueueSchema.methods.populateAll = async function () {
 		path: "workers",
 		populate: { path: "user" },
 	});
-	await queue.populate({
-		path: "tickets",
-		populate: { path: "user service" },
-		options: {
-			sort: {
-				approved: 1,
-				position: 0,
-			},
-		},
-	});
+	// await queue.populate({
+	// 	path: "tickets",
+	// 	populate: { path: "user service" },
+	// 	options: {
+	// 		sort: {
+	// 			approved: 1,
+	// 			position: 0,
+	// 		},
+	// 	},
+	// });
 
-	await queue.populate("servedTickets missedTickets");
-};
-
-QueueSchema.methods.hasTicketOnQueue = function (ticketId: string): boolean {
-	const queue = this as IQueueDocument;
-
-	return queue.tickets.some((el) => el._id.toString() === ticketId);
-};
-
-QueueSchema.methods.hasWorkerOnQueue = function (workerId: string): boolean {
-	const queue = this as IQueueDocument;
-
-	return queue.workers.some((el) => el._id.toString() === workerId);
-};
-
-QueueSchema.statics.findByCode = async function (
-	code: string
-): Promise<IQueueDocument | null> {
-	const model: IQueueModel = this as IQueueModel;
-	const queue = await model.findOne({ code, status: "on" });
-
-	if (!queue) {
-		return null;
-	}
-
-	await queue.populateAll();
-
-	return queue;
+	// await queue.populate("servedTickets missedTickets");
 };
 
 QueueSchema.statics.findLastPositionOfTicket = async function (
@@ -123,11 +115,39 @@ QueueSchema.statics.findLastPositionOfTicket = async function (
 	return 0;
 };
 
+QueueSchema.statics.findBarberTodayQueue = async function (
+	barberId?: string,
+	otherParams?: FilterQuery<IQueueDocument>
+): Promise<IQueueDocument | null> {
+	const model: IQueueModel = this as IQueueModel;
+	const { nextDay, today } = getTodayAndNextTo(1);
+
+	const params: FilterQuery<IQueueDocument> = {
+		status: "on",
+		createdAt: {
+			$gte: today,
+			$lt: nextDay,
+		},
+		...otherParams,
+	};
+
+	if (barberId) {
+		params.barber = barberId;
+	}
+
+	const queue = (await model.findOne(params)) as IQueueDocument;
+
+	await queue?.populateAll();
+
+	return queue;
+};
+
 interface IQueueMethods {}
 
 interface IQueueModel extends Model<IQueueDocument, {}, IQueueMethods> {
 	findLastPositionOfTicket: (queueId: string) => Promise<number>;
-	findByCode(code: string): Promise<IQueueDocument | null>;
+	findBarberTodayQueue(barberId: string): Promise<IQueueDocument | null>;
+	findQueueByCode(code: string): Promise<IQueueDocument | null>;
 }
 
 const QueueModel: IQueueModel = model<IQueueDocument, IQueueModel>(

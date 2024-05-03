@@ -1,7 +1,18 @@
-import { Response, Request } from "express";
-import { NotificationsModel } from "./NotificationsSchema";
-import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
+import {
+	HttpException,
+	SYSTEM_ERRORS,
+	SocketUrls,
+	errorHandler,
+} from "@core/index";
+import { GlobalSocket } from "app";
+import { Request, Response } from "express";
 import { IUserDocument } from "../Users";
+import { WorkersModel } from "../Workers";
+import {
+	NotificationMessageType,
+	NotificationsModel,
+} from "./NotificationsSchema";
+import { QueueModel } from "../Queue";
 
 class CustomerServicesRepository {
 	async index(req: Request, res: Response) {
@@ -56,6 +67,96 @@ class CustomerServicesRepository {
 		} catch (error) {
 			return errorHandler(error, res);
 		}
+	}
+
+	async notifyBarberWorkers(
+		barberId: string,
+		message: NotificationMessageType,
+		data?: any,
+		icon?: string
+	) {
+		// Notify barber workers
+		let workers = await WorkersModel.find({
+			barber: barberId,
+		});
+
+		if (!workers) {
+			return;
+		}
+
+		workers.forEach(async (worker) => {
+			const notification = await NotificationsModel.create({
+				to: worker.user._id.toString(),
+				message,
+				data,
+				icon,
+			});
+
+			if (!notification) {
+				return;
+			}
+
+			// Emit socket
+			if (GlobalSocket.io) {
+				console.log(
+					"Emitting notification to worker",
+					worker.user._id.toString()
+				);
+
+				GlobalSocket.io
+					.to(worker.user._id.toString())
+					.emit(SocketUrls.NewNotification, { notification });
+			}
+		});
+	}
+
+	async notifyQueueWorkers(
+		queueId: string,
+		message: NotificationMessageType,
+		data?: any,
+		icon?: string
+	) {
+		// Notify barber workers
+		const queue = await QueueModel.findOne({
+			_id: queueId,
+		});
+
+		if (!queue) {
+			return;
+		}
+
+		queue.workers.forEach(async (workerId) => {
+			const worker = await WorkersModel.findOne({
+				_id: workerId,
+			});
+
+			if(!worker){
+				return;
+			}
+
+			const notification = await NotificationsModel.create({
+				to: worker.user._id.toString(),
+				message,
+				data,
+				icon,
+			});
+
+			if (!notification) {
+				return;
+			}
+
+			// Emit socket
+			if (GlobalSocket.io) {
+				console.log(
+					"Emitting notification to worker",
+					worker.user._id.toString()
+				);
+
+				GlobalSocket.io
+					.to(worker.user._id.toString())
+					.emit(SocketUrls.NewNotification, { notification });
+			}
+		});
 	}
 }
 
