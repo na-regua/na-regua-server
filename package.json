@@ -8,7 +8,8 @@
     "dev": "ts-node-dev -r tsconfig-paths/register src/app.ts",
     "build": "npx tsc && npx tspath -f",
     "watch-node": "nodemon dist/src/app.js",
-    "watch-ts": "npx tsc -w"
+    "watch-ts": "npx tsc -w",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
   },
   "homepage": "https://github.com/na-regua/na-regua-server#readme",
   "dependencies": {
+    "@types/express-session": "^1.18.0",
     "@types/node": "^20.5.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",

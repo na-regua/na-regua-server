@@ -1,7 +1,7 @@
-const expsession = require('express-session');
+import expsession from "express-session";
 
 export const sessionMiddleware = expsession({
-  secret: process.env.SESSION_SECRET,
-  saveUninitialized: true,
-  resave: true
+	secret: process.env.SESSION_SECRET || 'SECRET',
+	saveUninitialized: true,
+	resave: true,
 });
