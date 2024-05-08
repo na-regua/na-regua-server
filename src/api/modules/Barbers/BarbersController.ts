@@ -1,8 +1,7 @@
-import { BaseController } from "@core/BaseController/BaseController";
-import { ENDPOINTS } from "@core/Router";
+import { cloudinaryStorage } from "@config/multer";
+import { BaseController, ENDPOINTS } from "@core/index";
 import { AuthRepository } from "../Auth";
 import BarbersRepository from "./BarbersRepository";
-import { cloudinaryStorage } from "@config/multer";
 
 export class BarbersController extends BaseController {
 	constructor() {

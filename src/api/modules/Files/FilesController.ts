@@ -1,6 +1,5 @@
-import { cloudinaryStorage, multerUpload } from "@config/multer";
-import { BaseController } from "@core/BaseController/BaseController";
-import { ENDPOINTS } from "@core/Router";
+import { cloudinaryStorage } from "@config/multer";
+import { BaseController, ENDPOINTS } from "@core/index";
 import { AuthRepository } from "../Auth";
 import FilesRepository from "./FilesRepository";
 

@@ -1,4 +1,4 @@
-import { SYSTEM_ERRORS, TSystemErrors } from "@core/SystemErrors/SystemErrors";
+import { SYSTEM_ERRORS, TSystemErrors } from "@core/index";
 
 class HttpException extends Error {
 	constructor(public status: number, public message: string) {

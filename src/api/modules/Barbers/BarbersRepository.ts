@@ -1,7 +1,5 @@
 import { cloudinaryDestroy } from "@config/multer";
-import { HttpException } from "@core/HttpException/HttpException";
-import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
-import { errorHandler } from "@core/errorHandler/errorHandler";
+import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { generateRandomCode } from "@utils/index";
 import { Request, Response } from "express";
 import { FilesModel, IFileDocument, TUploadedFile } from "../Files/FilesSchema";
