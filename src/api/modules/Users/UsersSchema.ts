@@ -20,13 +20,9 @@ const UsersSchema = new mongoose.Schema(
 			required: true,
 		},
 		phone: {
-			type: String,
+			type: Number,
 			required: true,
 			unique: true,
-			match: [
-				/^\([1-9]{2}\) (?:[2-8]|9[0-9])[0-9]{3}\-[0-9]{4}$/,
-				"Telefone inválido",
-			],
 		},
 		email: {
 			type: String,
@@ -49,11 +45,16 @@ const UsersSchema = new mongoose.Schema(
 		role: {
 			type: String,
 			required: true,
-			enum: ["admin", "worker", "custommer"],
+			enum: ["admin", "worker", "customer"],
+			default: "customer",
+		},
+		worker: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "Workers",
 		},
 		temporaryPassword: Boolean,
 		accessToken: String,
-		phoneConfirmed: {
+		verified: {
 			type: Boolean,
 			default: false,
 		},
@@ -149,19 +150,19 @@ UsersSchema.statics.findByToken = async function (
 	return user;
 };
 
-UsersSchema.methods.verifyPhone = async function (
-	phone: string,
-	code: string
-): Promise<void> {
+UsersSchema.methods.verifyPhone = async function (code: string): Promise<void> {
 	const user = this as IUserDocument;
 
-	const verification = await TwilioClient.verifyOTP(code, user.phone);
+	const verification = await TwilioClient.verifyOTP(
+		code,
+		user.phone
+	);
 
 	if (!verification || !verification.valid) {
 		throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
 	}
 
-	await user.updateOne({ phoneConfirmed: true });
+	await user.updateOne({ verified: true });
 };
 
 UsersSchema.pre("save", async function (next) {

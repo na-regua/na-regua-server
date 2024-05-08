@@ -10,7 +10,7 @@ class AuthRepository {
 	async loginWithEmail(
 		req: Request,
 		res: Response
-	): Promise<Response<{ user: TUser; accessToken: string }>> {
+	): Promise<Response<{ user: TUser; accessToken: string; barber: TBarber }>> {
 		try {
 			const { email, password } = req.body;
 
@@ -27,22 +27,20 @@ class AuthRepository {
 			await user.populate("avatar");
 			const accessToken = await user.generateAuthToken();
 
-			if (user.role === "admin" || user.role === "worker") {
+			if (user.role !== "customer") {
 				const worker = await WorkersModel.findOne({ user: user._id });
 
 				if (!worker) {
 					throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 				}
 
-				const barber = await BarbersModel.findOne({
-					workers: { $in: [worker._id] },
-				});
+				const barber = await BarbersModel.findById(worker.barber);
 
 				if (!barber) {
 					throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 				}
 
-				await barber.populate("avatar");
+				await barber.populateAll();
 
 				return res.status(200).json({ accessToken, barber, user });
 			}
@@ -53,7 +51,7 @@ class AuthRepository {
 		}
 	}
 
-	async sendWhatsappCode(
+	async sendOTPCode(
 		req: Request,
 		res: Response
 	): Promise<Response<{ goToVerify: boolean }>> {
@@ -65,23 +63,23 @@ class AuthRepository {
 			await TwilioRepository.sendOTP(phone);
 
 			return res.status(200).json({ goToVerify: true });
-		} catch (error) {
+		} catch (error: any) {
+			if (error.code) {
+				return errorHandler(new HttpException(400, error.code), res);
+			}
+
 			return errorHandler(error, res);
 		}
 	}
 
-	async verifyWhatsappCode(
+	async verifyOTPCode(
 		req: Request,
 		res: Response
 	): Promise<Response<{ user: TUser; accessToken: string }>> {
 		try {
 			const { code, phone } = req.body;
 
-			const user = await UsersModel.findOne({ phone });
-
-			if (!user) {
-				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
-			}
+			const user = await UsersModel.findByPhone(phone);
 
 			const verification = await TwilioRepository.verifyOTP(code, phone);
 
@@ -89,10 +87,10 @@ class AuthRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
 			}
 
-			await user.updateOne({ phoneConfirmed: true });
+			await user.updateOne({ verified: true });
+			await user.populate("avatar");
 
 			const accessToken = await user.generateAuthToken();
-			await user.populate("avatar");
 
 			if (user.role === "admin" || user.role === "worker") {
 				const worker = await WorkersModel.findOne({ user: user._id });
@@ -101,17 +99,17 @@ class AuthRepository {
 					throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 				}
 
-				const barber = await BarbersModel.findOne({
-					workers: { $in: [worker._id] },
-				});
+				const barber = await BarbersModel.findById(worker.barber);
 
 				if (!barber) {
 					throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 				}
 
 				if (user.role === "admin" && barber.phone === user.phone) {
-					await barber.updateOne({ phoneConfirmed: true });
+					await barber.updateOne({ verified: true });
 				}
+
+				await barber.populateAll();
 
 				return res.status(200).json({ accessToken, barber, user });
 			}
@@ -135,7 +133,7 @@ class AuthRepository {
 			let token = req.headers.authorization;
 
 			if (!token) {
-				throw new HttpException(403, SYSTEM_ERRORS.FORBIDDEN);
+				throw new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
 			}
 
 			token = token.replace("Bearer", "").trim();
@@ -144,7 +142,7 @@ class AuthRepository {
 			await user.populate("avatar");
 
 			if (!user) {
-				throw new HttpException(400, SYSTEM_ERRORS.UNAUTHORIZED);
+				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 			}
 
 			res.locals.user = user;
@@ -160,7 +158,7 @@ class AuthRepository {
 			const { user } = res.locals;
 
 			if (user.role !== "admin") {
-				throw new HttpException(400, SYSTEM_ERRORS.FORBIDDEN);
+				throw new HttpException(403, SYSTEM_ERRORS.FORBIDDEN);
 			}
 
 			const worker = await WorkersModel.findOne({ user: user._id });
@@ -169,9 +167,7 @@ class AuthRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 			}
 
-			const barber = await BarbersModel.findOne({
-				workers: { $in: [worker._id] },
-			});
+			const barber = await BarbersModel.findById(worker.barber);
 
 			if (!barber) {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
@@ -183,6 +179,31 @@ class AuthRepository {
 		} catch (err: any) {
 			return errorHandler(err, res);
 		}
+	}
+
+	async workForBarber(
+		_: Request,
+		res: Response,
+		next: NextFunction
+	): Promise<any> {
+		const { user } = res.locals;
+
+		const worker = await WorkersModel.findOne({ user: user._id });
+
+		if (!worker) {
+			throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
+		}
+
+		const barber = await BarbersModel.findById(worker.barber);
+
+		if (!barber) {
+			throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+		}
+
+		res.locals.worker = worker;
+		res.locals.barber = barber;
+
+		next();
 	}
 
 	async getCurrentUser(
@@ -213,20 +234,13 @@ class AuthRepository {
 					throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 				}
 
-				const filter: FilterQuery<IBarberDocument> = {
-					workers: {
-						$in: [worker._id],
-					},
-				};
-
-				const barber = await BarbersModel.findOne(filter);
+				const barber = await BarbersModel.findById(worker.barber);
 
 				if (!barber) {
 					throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 				}
 
-				await barber.populate("avatar");
-				await barber.populate("thumbs");
+				await barber.populateAll();
 
 				response.barber = barber;
 			}

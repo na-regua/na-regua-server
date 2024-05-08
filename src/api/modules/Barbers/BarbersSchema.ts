@@ -1,62 +1,12 @@
 import { Model, model } from "mongoose";
 
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
-import { Document, InferSchemaType, Schema, SchemaDefinition } from "mongoose";
+import { Document, InferSchemaType, Schema } from "mongoose";
 
 const uniqueValidator = require("mongoose-unique-validator");
 
-const serviceConfigDefinition: SchemaDefinition = {
-	
-	schedulesByDay: {
-		type: Number,
-		default: 4,
-		required: true,
-	},
-	workTime: {
-		start: {
-			type: String,
-			default: "08:00",
-		},
-		end: {
-			type: String,
-			default: "17:00",
-		},
-	},
-	schedules: [
-		{
-			time: {
-				type: String,
-				required: true,
-			},
-			recommended: Boolean,
-			active: Boolean,
-		},
-	],
-};
-
-const BarbersSchema = new Schema(
+const AddressSchema = new Schema(
 	{
-		name: {
-			type: String,
-			required: true,
-		},
-		description: {
-			type: String,
-		},
-		email: {
-			type: String,
-			required: true,
-			unique: true,
-		},
-		phone: {
-			type: String,
-			required: true,
-			unique: true,
-		},
-		phoneConfirmed: {
-			type: Boolean,
-			default: false,
-		},
 		cep: {
 			type: String,
 			required: true,
@@ -83,44 +33,119 @@ const BarbersSchema = new Schema(
 			required: true,
 		},
 		complement: String,
-		code: { type: String, unique: true },
-		avatar: {
-			type: Schema.Types.ObjectId,
-			ref: "Files",
+	},
+	{ versionKey: false, timestamps: false, _id: false }
+);
+
+const getDayToWorkDays: Record<number, string> = {
+	0: "sun",
+	1: "mon",
+	2: "tue",
+	3: "wed",
+	4: "thu",
+	5: "fri",
+	6: "sat",
+};
+
+const AttendanceSchema = new Schema(
+	{
+		workDays: {
+			type: [String],
+			enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+			default: ["mon", "tue", "wed", "thu", "fri"],
+		},
+		workTime: {
+			start: {
+				type: String,
+				default: "08:00",
+			},
+			end: {
+				type: String,
+				default: "17:00",
+			},
+		},
+		openBarberAuto: {
+			type: Boolean,
+			default: false,
+		},
+		openQueueAuto: {
+			type: Boolean,
+			default: false,
+		},
+		scheduleLimitDays: {
+			type: Number,
+			enum: [7, 15, 30],
+			default: 30,
+		},
+		schedulesByDay: {
+			type: Number,
+			default: 4,
 			required: true,
+		},
+		scheduleTimes: {
+			type: [String],
+		},
+	},
+	{ versionKey: false, timestamps: false, _id: false }
+);
+
+const BarbersSchema = new Schema(
+	{
+		name: {
+			type: String,
+			required: true,
+		},
+		description: {
+			type: String,
+		},
+		email: {
+			type: String,
+			required: true,
+			unique: true,
+		},
+		address: {
+			type: AddressSchema,
+			required: true,
+		},
+		phone: {
+			type: Number,
+			required: true,
+			unique: true,
+		},
+		verified: {
+			type: Boolean,
+			default: false,
+		},
+		status: {
+			type: String,
+			enum: ["active", "inactive"],
+			default: "active",
 		},
 		profileStatus: {
 			type: String,
 			enum: ["pre", "completed"],
 			default: "pre",
 		},
+		code: { type: String, unique: true },
+		avatar: {
+			type: Schema.Types.ObjectId,
+			ref: "Files",
+		},
 		thumbs: {
 			type: [Schema.Types.ObjectId],
 			ref: "Files",
 		},
-		workers: {
-			type: [Schema.Types.ObjectId],
-			ref: "Workers",
+		config: {
+			type: AttendanceSchema,
 		},
-		services: {
-			type: [Schema.Types.ObjectId],
-			ref: "Services",
+		open: {
+			type: Boolean,
+			default: false,
 		},
-		custommers: {
+		customers: {
 			type: [Schema.Types.ObjectId],
 			ref: "Users",
-		},
-		workDays: {
-			type: [String],
-			enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-			default: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
-		},
-		businessDaysConfig: serviceConfigDefinition,
-		holidaysConfig: serviceConfigDefinition,
-		scheduleLimitDays: {
-			type: Number,
-			default: 30,
-			enum: [7, 15, 30],
+			default: [],
 		},
 	},
 	{
@@ -159,18 +184,6 @@ BarbersSchema.methods.populateAll =
 BarbersSchema.pre("save", async function (next) {
 	const barber = this;
 
-	const condition = barber.workers.length > 0 && barber.services.length > 0;
-
-	if (condition) {
-		if (barber.profileStatus === "pre") {
-			barber.profileStatus = "completed";
-		}
-	} else {
-		if (barber.profileStatus === "completed") {
-			barber.profileStatus = "pre";
-		}
-	}
-
 	next();
 });
 
@@ -179,4 +192,11 @@ const BarbersModel: IBarbersModel = model<IBarberDocument, IBarbersModel>(
 	BarbersSchema
 );
 
-export { BarbersModel, BarbersSchema, IBarberDocument, IBarbersModel, TBarber };
+export {
+	BarbersModel,
+	BarbersSchema,
+	IBarberDocument,
+	IBarbersModel,
+	TBarber,
+	getDayToWorkDays,
+};

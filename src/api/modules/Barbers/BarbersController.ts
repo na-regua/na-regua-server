@@ -7,8 +7,6 @@ import { cloudinaryStorage } from "@config/multer";
 export class BarbersController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {
@@ -46,6 +44,20 @@ export class BarbersController extends BaseController {
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
 			BarbersRepository.completeProfile
+		);
+
+		this.router.post(
+			ENDPOINTS.BARBERS_OPEN,
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			BarbersRepository.openBarber
+		);
+
+		this.router.post(
+			ENDPOINTS.BARBERS_CLOSE,
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			BarbersRepository.closeBarber
 		);
 	}
 }

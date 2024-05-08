@@ -1,3 +1,4 @@
+import { cloudinaryDestroy } from "@config/multer";
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
@@ -5,7 +6,6 @@ import { IBarberDocument } from "../Barbers";
 import { FilesModel, TUploadedFile } from "../Files";
 import { IUserDocument, UsersModel } from "../Users";
 import { IWorkerDocument, TWorker, WorkersModel } from "./WorkersSchema";
-import { cloudinaryDestroy } from "@config/multer";
 
 class WorkersRepository {
 	async index(req: Request, res: Response): Promise<Response<TWorker[]>> {
@@ -47,6 +47,7 @@ class WorkersRepository {
 				filename: file.filename,
 				originalName: file.originalname,
 				url: file.path,
+				mimeType: file.mimetype,
 			});
 
 			body.avatar = avatarFile._id;
@@ -69,6 +70,10 @@ class WorkersRepository {
 			if (!worker) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_CREATED);
 			}
+
+			await workerUser.updateOne({
+				worker: worker._id,
+			});
 
 			res.locals.worker = worker;
 
@@ -98,6 +103,11 @@ class WorkersRepository {
 	async update(req: Request, res: Response): Promise<Response<any>> {
 		try {
 			const body = req.body;
+
+			if (body.phone) {
+				body.verified = false;
+			}
+
 			const file = req.file as TUploadedFile;
 
 			const workerId = req.params.id;
@@ -108,10 +118,6 @@ class WorkersRepository {
 
 			if (!worker) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
-			}
-
-			if (body.phone) {
-				body.phoneConfirmed = false;
 			}
 
 			const workerUser = await UsersModel.findByIdAndUpdate(worker.user._id);
@@ -129,6 +135,7 @@ class WorkersRepository {
 						originalName: file.originalname,
 						filename: file.filename,
 						url: file.path,
+						mimeType: file.mimetype,
 					}),
 				]);
 			}
@@ -143,31 +150,52 @@ class WorkersRepository {
 
 	async delete(req: Request, res: Response): Promise<Response<any>> {
 		try {
+			const barber = res.locals.barber as IBarberDocument;
 			const workerId = req.params.id;
 
-			const barber: IBarberDocument = res.locals.barber;
+			const barberWorkers = await WorkersModel.find({ barber: barber._id });
 
 			if (!workerId) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 			}
 
-			const deletedWorker = await WorkersModel.findByIdAndDelete(workerId);
+			if (!barberWorkers) {
+				throw new HttpException(400, SYSTEM_ERRORS.NO_WORKERS_TO_DELETE);
+			}
 
-			if (!deletedWorker) {
+			if (barberWorkers.length === 1) {
+				throw new HttpException(
+					400,
+					SYSTEM_ERRORS.BARBER_SHOULD_HAVE_ONE_WORKER
+				);
+			}
+
+			const workerToDelete = await WorkersModel.findById(workerId);
+
+			if (!workerToDelete) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
 			}
 
-			const deletedUser = await UsersModel.findByIdAndDelete(
-				deletedWorker.user._id
-			);
+			// Proceed to delete
 
-			await barber.updateOne({
-				$pull: {
-					workers: deletedWorker._id,
-				},
-			});
+			const userToDelete = await UsersModel.findById(workerToDelete.user._id);
 
-			return res.status(200).json({ deletedWorker, deletedUser });
+			if (!userToDelete) {
+				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+			}
+
+			const avatarFile = await FilesModel.findById(userToDelete.avatar);
+
+			if (!avatarFile) {
+				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
+			}
+
+			await workerToDelete.deleteOne();
+			await userToDelete.deleteOne();
+			await avatarFile.deleteOne();
+			await cloudinaryDestroy(avatarFile.filename);
+
+			return res.status(200).json(null);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

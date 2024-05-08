@@ -39,9 +39,6 @@ class ServicesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_CREATED);
 			}
 
-			barber.services.push(newService._id);
-			await barber.save();
-
 			return res.status(201).json(newService);
 		} catch (error) {
 			return errorHandler(error, res);
@@ -50,18 +47,28 @@ class ServicesRepository {
 
 	async update(req: Request, res: Response): Promise<Response<TService>> {
 		try {
-			const { id } = req.params;
+			const { serviceId } = req.params;
 			const body = req.body;
 
 			const barber: IBarberDocument = res.locals.barber;
 
-			const updatedService = await ServicesModel.findOneAndUpdate(
+			if (!serviceId) {
+				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
+			}
+
+			const service = await ServicesModel.findByIdAndUpdate(
 				{
-					_id: id,
+					_id: serviceId,
 					barber: barber._id,
 				},
 				body
 			);
+
+			if (!service) {
+				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
+			}
+
+			const updatedService = await ServicesModel.findById(serviceId);
 
 			return res.status(201).json(updatedService);
 		} catch (error) {
@@ -71,22 +78,35 @@ class ServicesRepository {
 
 	async delete(req: Request, res: Response): Promise<Response<null>> {
 		try {
-			const { id } = req.params;
+			const { serviceId } = req.params;
 			const barber: IBarberDocument = res.locals.barber;
 
-			const service = await ServicesModel.findByIdAndDelete(id);
+			const allServices = await ServicesModel.find({ barber: barber._id });
+
+			if (!serviceId) {
+				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
+			}
+
+			if (!allServices) {
+				throw new HttpException(400, SYSTEM_ERRORS.NO_SERVICES_TO_DELETE);
+			}
+
+			if (allServices.length === 1) {
+				throw new HttpException(
+					400,
+					SYSTEM_ERRORS.BARBER_SHOULD_HAVE_ONE_SERVICE
+				);
+			}
+
+			const service = await ServicesModel.findById(serviceId);
 
 			if (!service) {
 				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
 			}
 
-			await barber.updateOne({
-				$pull: {
-					services: service._id,
-				},
-			});
+			await service.deleteOne();
 
-			return res.status(200).json(service);
+			return res.status(200).json(null);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

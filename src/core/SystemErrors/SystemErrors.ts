@@ -1,39 +1,66 @@
 export const SYSTEM_ERRORS = {
-	INVALID_CEP: "CEP inválido!",
-	INVALID_PHONE_NUMBER: "Número de telefone inválido!",
-	INVALID_CODE: "Código de verificação inválido!",
-	INVALID_EMAIL: "Email inválido!",
-	INVALID_PASSWORD: "Senha inválida!",
-	INVALID_LOGIN_TYPE: "Tipo de login inválido!",
-	INVALID_TOKEN: "Token inválido!",
-	INVALID_FILE: "Arquivo inválido! Somente imagens são permitidas!",
+	// Invalid data
+	INVALID_CEP: "INVALID_CEP",
+	INVALID_PHONE_NUMBER: "INVALID_PHONE_NUMBER",
+	INVALID_CODE: "INVALID_CODE",
+	INVALID_EMAIL: "INVALID_EMAIL",
+	INVALID_PASSWORD: "INVALID_PASSWORD",
+	INVALID_LOGIN_TYPE: "INVALID_LOGIN_TYPE",
+	INVALID_TOKEN: "INVALID_TOKEN",
+	INVALID_FILE: "INVALID_FILE",
+	INVALID_SCHEDULE_DATE: "INVALID_SCHEDULE_DATE",
 
-	UNAVAILABLE_MESSAGE_SERVICE: "Serviço de Mensagens indisponível!",
+	//Auth
+	TOKEN_NOT_FOUND: "TOKEN_NOT_FOUND",
 
-	BARBER_NOT_FOUND: "Barbeiro não encontrado!",
-	BARBER_NOT_COMPLETED:
-		"Perfil incompleto, adicione pelo menos um funcionário e um serviço!",
+	// Barber
+	BARBER_NOT_CREATED: "BARBER_NOT_CREATED",
+	BARBER_NOT_COMPLETED: "BARBER_NOT_COMPLETED",
+	BARBER_NOT_FOUND: "BARBER_NOT_FOUND",
 
-	USER_NOT_FOUND: "Usuário não encontrado.",
-	FILE_NOT_FOUND: "Nenhum arquivo encontrado!",
-	TOKEN_NOT_FOUND: "Token não encontrado!",
-	SERVICE_NOT_FOUND: "Serviço não encontrado!",
-	WORKER_NOT_FOUND: "Funcionário não encontrado!",
+	// Queue
+	QUEUE_NOT_FOUND: "QUEUE_NOT_FOUND",
+	QUEUE_CAN_CREATE_ONLY_ONE_PER_DAY: "QUEUE_CAN_CREATE_ONLY_ONE_PER_DAY",
 
-	WORKER_NOT_CREATED: "Não foi possível criar o Funcionário!",
-	SERVICE_NOT_CREATED: "Não foi possível criar o Serviço!",
-	BARBER_NOT_CREATED: "Não foi possível criar a Barbearia!",
-	USER_NOT_CREATED: "Não foi possível criar a Usuário!",
+	// User
+	USER_NOT_CREATED: "USER_NOT_CREATED",
+	USER_ALREADY_EXISTS: "USER_ALREADY_EXISTS",
+	USER_NOT_FOUND: "USER_NOT_FOUND",
 
-	USER_ALREADY_EXISTS: "Usuário já existe.",
+	// HTTP Errors
+	INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
+	UNAUTHORIZED: "UNAUTHORIZED",
+	FORBIDDEN: "FORBIDDEN",
 
-	INTERNAL_SERVER_ERROR: "Erro interno do servidor!",
-	UNAUTHORIZED: "Não autorizado! Faça login para acessar este recurso!",
-	FORBIDDEN: "Proibido! Você não tem permissão para acessar este recurso!",
+	// File
+	FILE_NOT_FOUND: "FILE_NOT_FOUND",
+	FILE_NOT_SENT: "FILE_NOT_SENT",
+	FILE_NOT_CREATED: "FILE_NOT_CREATED",
+	THUMBS_LIMIT_EXCEEDED: "THUMBS_LIMIT_EXCEEDED",
 
-	FILE_NOT_SENT: "Nenhum arquivo foi enviado!",
+	// Notification
+	NOTIFICATION_NOT_FOUND: "NOTIFICATION_NOT_FOUND",
 
-	"20404": "Nenhuma solicitação de verificação!",
+	// Services
+	SERVICE_NOT_CREATED: "SERVICE_NOT_CREATED",
+	SERVICE_NOT_FOUND: "SERVICE_NOT_FOUND",
+	BARBER_SHOULD_HAVE_ONE_SERVICE: "BARBER_SHOULD_HAVE_ONE_SERVICE",
+	NO_SERVICES_TO_DELETE: "NO_SERVICES_TO_DELETE",
+
+	// Schedule
+	SCHEDULE_NOT_CREATED: "SCHEDULE_NOT_CREATED",
+
+	// Worker
+	WORKER_NOT_FOUND: "WORKER_NOT_FOUND",
+	WORKER_NOT_CREATED: "WORKER_NOT_CREATED",
+	NO_WORKERS_TO_DELETE: "NO_WORKERS_TO_DELETE",
+	BARBER_SHOULD_HAVE_ONE_WORKER: "BARBER_SHOULD_HAVE_ONE_WORKER",
+
+	// Auth Verify
+	"20404": "AUTH_NO_VERIFICATION_FOUND",
+	"60202": "AUTH_CHECK_MAX_ATTEMPTS",
+	"60203": "AUTH_SEND_MAX_ATTEMPTS",
+	UNAVAILABLE_MESSAGE_SERVICE: "UNAVAILABLE_MESSAGE_SERVICE",
 };
 
 export type TSystemErrors = typeof SYSTEM_ERRORS;

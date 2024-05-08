@@ -7,8 +7,6 @@ import { AuthRepository } from "../Auth";
 export class UsersController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {

@@ -30,6 +30,7 @@ class UsersRepository {
 				filename: file.filename,
 				url: file.path,
 				originalName: file.originalname,
+				mimeType: file.mimetype,
 			});
 
 			body.avatar = avatarFile._id;
@@ -109,7 +110,7 @@ class UsersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
 			}
 
-			await user.updateOne({ phoneConfirmed: true });
+			await user.updateOne({ verified: true });
 
 			return res.status(200).json(verification);
 		} catch (error) {

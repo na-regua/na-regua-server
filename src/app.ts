@@ -1,7 +1,13 @@
 require("dotenv").config();
-import { Server } from "./core";
+import { Server, SocketServer } from "./core";
 
 const PORT = process.env.PORT || 8080;
 const server = new Server();
 
-server.listen(PORT);
+const serverInstance = server.listen(PORT);
+
+const GlobalSocket = new SocketServer(serverInstance);
+
+GlobalSocket.start();
+
+export { GlobalSocket };

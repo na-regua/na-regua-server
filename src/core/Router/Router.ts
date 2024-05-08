@@ -2,9 +2,14 @@ import {
 	AuthController,
 	BarbersController,
 	FilesController,
+	NotificationController,
+	QueueController,
+	QueueTicketsController,
+	TicketsController,
 	UsersController,
 	WorkersController,
 } from "@api/modules";
+import { SchedulesController } from "@api/modules/Schedules";
 import ServicesController from "@api/modules/Services/ServicesController";
 import { Application } from "express";
 
@@ -18,19 +23,23 @@ class Router {
 	}
 
 	initRoutes(): void {
-		const barbersController = new BarbersController();
-		const servicesController = new ServicesController();
-		const usersController = new UsersController();
-		const authController = new AuthController();
-		const workersController = new WorkersController();
-		const filesController = new FilesController();
+		const controllers = [
+			new BarbersController(),
+			new ServicesController(),
+			new UsersController(),
+			new AuthController(),
+			new WorkersController(),
+			new FilesController(),
+			new QueueController(),
+			new TicketsController(),
+			new NotificationController(),
+			new QueueTicketsController(),
+			new SchedulesController(),
+		];
 
-		this.app.use(`${this.apiPrefix}`, barbersController.router);
-		this.app.use(`${this.apiPrefix}`, servicesController.router);
-		this.app.use(`${this.apiPrefix}`, usersController.router);
-		this.app.use(`${this.apiPrefix}`, authController.router);
-		this.app.use(`${this.apiPrefix}`, workersController.router);
-		this.app.use(`${this.apiPrefix}`, filesController.router);
+		controllers.map((controller) =>
+			this.app.use(this.apiPrefix, controller.router)
+		);
 	}
 }
 

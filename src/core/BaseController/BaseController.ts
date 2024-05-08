@@ -3,7 +3,9 @@ import { Router } from "express";
 abstract class BaseController {
 	router = Router();
 
-	constructor() {}
+	constructor() {
+		this.defineRoutes();
+	}
 
 	abstract defineRoutes(): void;
 }

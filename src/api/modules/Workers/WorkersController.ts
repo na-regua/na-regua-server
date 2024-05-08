@@ -1,14 +1,12 @@
 import { BaseController } from "@core/index";
 import { AuthRepository } from "../Auth";
 import WorkersRepository from "./WorkersRepository";
-import { cloudinaryStorage, multerUpload } from "@config/multer";
+import { cloudinaryStorage } from "@config/multer";
 import { ENDPOINTS } from "@core/Router";
 
 export class WorkersController extends BaseController {
 	constructor() {
 		super();
-
-		this.defineRoutes();
 	}
 
 	defineRoutes(): void {
