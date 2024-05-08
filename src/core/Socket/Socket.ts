@@ -49,15 +49,12 @@ class SocketServer {
 			next();
 		});
 
-		// server.listen(443, () => {
-		// 	console.log("Socket server is running on port 443");
-		// });
-
 		this.onConnection();
 	}
 
 	onConnection() {
 		this.io.on("connection", (socket: Socket) => {
+			console.log("Socket connected");
 			const user = (socket.request as any).session.user;
 
 			const queueEvents = new SocketQueueEvents(socket, user);
