@@ -1,1 +1,0 @@
-'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.sessionMiddleware=void 0;const expsession=require('express-session');exports.sessionMiddleware=expsession({secret:process.env.SESSION_SECRET,saveUninitialized:true,resave:true});

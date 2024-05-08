@@ -1,1 +1,0 @@
-'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.GlobalSocket=void 0;require('dotenv').config();const core_1=require('./core');const PORT=process.env.PORT||8080;const server=new core_1.Server();const serverInstance=server.listen(PORT);const GlobalSocket=new core_1.SocketServer(serverInstance);exports.GlobalSocket=GlobalSocket;GlobalSocket.start();
