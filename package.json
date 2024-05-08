@@ -2,7 +2,7 @@
   "name": "na-regua-server",
   "version": "1.1.0",
   "description": "Na Régua servers",
-  "main": "index.js",
+  "main": "dist/app.js",
   "scripts": {
     "start": "node dist/app.js",
     "dev": "ts-node-dev -r tsconfig-paths/register src/app.ts",
