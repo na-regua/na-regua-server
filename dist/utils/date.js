@@ -1,0 +1,1 @@
+'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.getTodayAndNextTo=void 0;function getTodayAndNextTo(addDays){const today=new Date();today.setHours(0,0,0,0);const nextDay=new Date(today);nextDay.setDate(today.getDate()+addDays);return{today,nextDay};}exports.getTodayAndNextTo=getTodayAndNextTo;
