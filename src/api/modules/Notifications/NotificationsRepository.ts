@@ -4,8 +4,10 @@ import {
 	SocketUrls,
 	errorHandler,
 } from "@core/index";
-import { GlobalSocket } from "app";
+import { GlobalSocket } from "../../../app";
 import { Request, Response } from "express";
+import { FilterQuery } from "mongoose";
+import { QueueModel } from "../Queue";
 import { IUserDocument } from "../Users";
 import { WorkersModel } from "../Workers";
 import {
@@ -13,9 +15,6 @@ import {
 	NotificationMessageType,
 	NotificationsModel,
 } from "./NotificationsSchema";
-import { QueueModel } from "../Queue";
-import { populate } from "dotenv";
-import { FilterQuery } from "mongoose";
 
 class CustomerServicesRepository {
 	async index(req: Request, res: Response) {

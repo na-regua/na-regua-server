@@ -10,7 +10,7 @@ import {
 	WorkersModel,
 } from "@api/modules";
 import NotificationsRepository from "@api/modules/Notifications/NotificationsRepository";
-import { GlobalSocket } from "app";
+import { GlobalSocket } from "../../../app";
 import { Socket } from "socket.io";
 import { SocketUrls } from "../SocketModel";
 
