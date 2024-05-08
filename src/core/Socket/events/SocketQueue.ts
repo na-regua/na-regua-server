@@ -4,16 +4,15 @@ import {
 	IUserDocument,
 	IWorkerDocument,
 	NotificationMessageType,
-	NotificationsModel,
 	QueueModel,
 	ServicesModel,
 	TicketsModel,
 	WorkersModel,
 } from "@api/modules";
+import NotificationsRepository from "@api/modules/Notifications/NotificationsRepository";
 import { GlobalSocket } from "app";
 import { Socket } from "socket.io";
 import { SocketUrls } from "../SocketModel";
-import NotificationsRepository from "@api/modules/Notifications/NotificationsRepository";
 
 export class SocketQueueEvents {
 	socket!: Socket;
@@ -59,19 +58,19 @@ export class SocketQueueEvents {
 	}
 
 	init(): void {
-		this.socket.on(SocketUrls.WorkerJoinQueue, (data) =>
-			this.workerJoinQueue(data)
-		);
+		this.socket.on(SocketUrls.WorkerJoinQueue, () => this.workerJoinQueue());
 		this.socket.on(SocketUrls.UserJoinQueue, (data) =>
 			this.userJoinQueue(data)
 		);
 
-		// this.socket.on(SocketUrls.WorkerPauseQueue, this.workerPauseQueue);
-		// this.socket.on(SocketUrls.WorkerPauseQueue, this.workerResumeQueue);
+		this.socket.on(SocketUrls.WorkerPauseQueue, () => this.workerPauseQueue());
+		this.socket.on(SocketUrls.WorkerResumeQueue, () =>
+			this.workerResumeQueue()
+		);
 	}
 
 	// Worker join queue
-	private async workerJoinQueue(data: any) {
+	private async workerJoinQueue() {
 		const getQueue = await this.getQueueDataByUserWorker();
 
 		if (!getQueue) {
@@ -80,15 +79,23 @@ export class SocketQueueEvents {
 
 		const { queue, worker } = getQueue;
 
-		// Check if worker is already in queue
-		if (queue.workers.includes(worker._id)) {
-			this.globalIo.emitEvent(this.socket, "WORKER_IS_ALREADY_IN_QUEUE");
-			return;
+		// Check if worker isn't in queue
+		if (
+			!queue.workers.some(
+				(worker) => worker._id.toString() === worker._id.toString()
+			)
+		) {
+			// Join worker on queue
+			await queue.updateOne({
+				$push: { workers: worker._id },
+			});
 		}
 
-		// Join worker on queue
-		await queue.updateOne({
-			$push: { workers: worker._id },
+		// Emit events to room
+		await worker.populate("user");
+
+		this.globalIo.emitGlobalEvent(queue._id.toString(), "WORKER_JOINED_QUEUE", {
+			worker,
 		});
 
 		// Join queue room
@@ -96,14 +103,13 @@ export class SocketQueueEvents {
 		// Join barber room
 		await this.socket.join(worker.barber._id.toString());
 
-		// Emit events to room
-		this.globalIo.emitGlobalEvent(queue._id.toString(), "WORKER_JOINED_QUEUE", {
-			worker,
-		});
-
 		// Emit queue data event to all workers
 		const updatedQueue = await QueueModel.findById(queue._id);
-		this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+
+		if (updatedQueue) {
+			await updatedQueue.populateAll();
+			this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		}
 	}
 	// User join queue
 	private async userJoinQueue(data: any) {
@@ -133,7 +139,9 @@ export class SocketQueueEvents {
 			this.globalIo.emitEvent(this.socket, "QUEUE_NOT_FOUND");
 			return;
 		}
-		// TODO: Check if user is already in queue
+
+		// Check if user is already in queue
+
 		// Calculate position
 
 		// Check if user is already a customer in barber
@@ -227,7 +235,7 @@ export class SocketQueueEvents {
 	// Worker finish queue
 	private workerFinishQueue() {}
 	// Worker pause queue
-	private async workerPauseQueue(data: any) {
+	private async workerPauseQueue() {
 		const getQueue = await this.getQueueDataByUserWorker();
 
 		if (!getQueue) {
@@ -247,12 +255,14 @@ export class SocketQueueEvents {
 
 		// Emit queue data event to all workers
 		const updatedQueue = await QueueModel.findById(queue._id);
-		this.globalIo.io
-			.to(queue._id.toString())
-			.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		if (updatedQueue) {
+			this.globalIo.io
+				.to(queue._id.toString())
+				.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		}
 	}
 	// Worker resume queue
-	private async workerResumeQueue(data: any) {
+	private async workerResumeQueue() {
 		const getQueue = await this.getQueueDataByUserWorker();
 
 		if (!getQueue) {

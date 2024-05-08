@@ -42,7 +42,7 @@ class QueueRepository {
 				workers: [worker._id],
 			});
 
-			return res.status(201).json(newQueue);
+			return res.status(201).json({ queue: newQueue });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -59,12 +59,14 @@ class QueueRepository {
 
 			const queue = await QueueModel.findOne({
 				barber: barber._id,
-				status: "on",
+				status: { $in: ["on", "paused"] },
 				createdAt: {
 					$gte: today,
 					$lt: nextDay,
 				},
 			});
+
+			await queue?.populateAll();
 
 			return res.status(200).json({ queue });
 		} catch (error) {

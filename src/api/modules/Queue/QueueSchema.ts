@@ -78,9 +78,23 @@ QueueSchema.methods.populateAll = async function () {
 		path: "workers",
 		populate: { path: "user" },
 	});
+
+	await queue.populate({
+		path: "tickets",
+		populate: [
+			{ path: "customer", populate: { path: "avatar" } },
+			{ path: "service" },
+		],
+		options: {
+			sort: {
+				approved: 1,
+				position: 0,
+			},
+		},
+	});
 	// await queue.populate({
-	// 	path: "tickets",
-	// 	populate: { path: "user service" },
+	// 	path: "serveds",
+	// 	populate: { path: ticketPopulatePath },
 	// 	options: {
 	// 		sort: {
 	// 			approved: 1,
@@ -88,8 +102,18 @@ QueueSchema.methods.populateAll = async function () {
 	// 		},
 	// 	},
 	// });
-
-	// await queue.populate("servedTickets missedTickets");
+	// await queue.populate({
+	// 	path: "misseds",
+	// 	populate: {
+	// 		path: ticketPopulatePath,
+	// 	},
+	// 	options: {
+	// 		sort: {
+	// 			approved: 1,
+	// 			position: 0,
+	// 		},
+	// 	},
+	// });
 };
 
 QueueSchema.statics.findLastPositionOfTicket = async function (
@@ -123,7 +147,7 @@ QueueSchema.statics.findBarberTodayQueue = async function (
 	const { nextDay, today } = getTodayAndNextTo(1);
 
 	const params: FilterQuery<IQueueDocument> = {
-		status: "on",
+		status: { $in: ["on", "paused"] },
 		createdAt: {
 			$gte: today,
 			$lt: nextDay,

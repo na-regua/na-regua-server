@@ -25,6 +25,24 @@ const NotificationMessageType: NotificationMessageType[] = [
 	"OTHERS",
 ];
 
+const NotificationDataSchema = new Schema(
+	{
+		service: {
+			type: Schema.Types.ObjectId,
+			ref: "Services",
+		},
+		user: {
+			type: Schema.Types.ObjectId,
+			ref: "Users",
+		},
+		customer: {
+			type: Schema.Types.ObjectId,
+			ref: "Users",
+		},
+	},
+	{ _id: false, versionKey: false }
+);
+
 const NotificationSchema = new Schema(
 	{
 		to: {
@@ -39,9 +57,9 @@ const NotificationSchema = new Schema(
 			default: "OTHERS",
 		},
 		data: {
-			type: Object,
+			type: NotificationDataSchema,
 		},
-		viewed: {
+		read: {
 			type: Boolean,
 			default: false,
 		},

@@ -9,19 +9,64 @@ import { Request, Response } from "express";
 import { IUserDocument } from "../Users";
 import { WorkersModel } from "../Workers";
 import {
+	INotificationDocument,
 	NotificationMessageType,
 	NotificationsModel,
 } from "./NotificationsSchema";
 import { QueueModel } from "../Queue";
+import { populate } from "dotenv";
+import { FilterQuery } from "mongoose";
 
 class CustomerServicesRepository {
 	async index(req: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 
-			const notifications = await NotificationsModel.find({ to: user._id });
+			const { read, limit } = req.query;
 
-			return res.json(notifications);
+			const userId = user._id.toString();
+
+			const params: FilterQuery<INotificationDocument> = {
+				to: userId,
+			};
+
+			if (read) {
+				params.read = read === "true";
+			}
+			// filter notification by barber too, this will reduce the number of notification documents, and improve performance
+			// if (user.role === "admin" || "worker") {
+			// 	const worker = await WorkersModel.findOne({
+			// 		user: user._id,
+			// 	});
+
+			// 	if (worker) {
+			// 		const workerBarberId = worker.barber._id.toString();
+
+			// 		params.to = {
+			// 			$in: [userId, workerBarberId],
+			// 		};
+			// 	}
+			// }
+
+			const total = await NotificationsModel.countDocuments(params);
+
+			const hasUnread = !!(await NotificationsModel.exists({
+				to: user._id.toString(),
+				read: false,
+			}));
+
+			const notifications = await NotificationsModel.find(params)
+				.populate("icon")
+				.populate("to")
+				.populate("data data.service data.user data.customer")
+				.sort({ createdAt: -1 })
+				.limit(limit ? +limit : 0);
+
+			if (!notifications) {
+				return res.status(200).json([]);
+			}
+
+			return res.status(200).json({ notifications, total, hasUnread });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -41,7 +86,7 @@ class CustomerServicesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.NOTIFICATION_NOT_FOUND);
 			}
 
-			await notification.updateOne({ viewed: true });
+			await notification.updateOne({ read: true });
 
 			return res.status(200).json(null);
 		} catch (error) {
@@ -49,7 +94,7 @@ class CustomerServicesRepository {
 		}
 	}
 
-	async markAllAsViewed(req: Request, res: Response) {
+	async markAllAsViewed(_: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 
@@ -61,7 +106,7 @@ class CustomerServicesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.NOTIFICATION_NOT_FOUND);
 			}
 
-			await NotificationsModel.updateMany({ to: user._id }, { viewed: true });
+			await NotificationsModel.updateMany({ to: user._id }, { read: true });
 
 			return res.status(200).json(null);
 		} catch (error) {
@@ -130,7 +175,7 @@ class CustomerServicesRepository {
 				_id: workerId,
 			});
 
-			if(!worker){
+			if (!worker) {
 				return;
 			}
 
