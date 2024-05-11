@@ -27,14 +27,12 @@ const UsersSchema = new mongoose.Schema(
 		email: {
 			type: String,
 			unique: true,
-			required: true,
 			trim: true,
 			lowercase: true,
 			validate: [isEmail, SYSTEM_ERRORS.INVALID_EMAIL],
 		},
 		password: {
 			type: String,
-			required: true,
 			minLength: 6,
 		},
 		avatar: {
@@ -147,16 +145,17 @@ UsersSchema.statics.findByToken = async function (
 		throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 	}
 
+	if (user.accessToken !== token) {
+		throw new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
+	}
+
 	return user;
 };
 
 UsersSchema.methods.verifyPhone = async function (code: string): Promise<void> {
 	const user = this as IUserDocument;
 
-	const verification = await TwilioClient.verifyOTP(
-		code,
-		user.phone
-	);
+	const verification = await TwilioClient.verifyOTP(code, user.phone);
 
 	if (!verification || !verification.valid) {
 		throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
@@ -168,7 +167,7 @@ UsersSchema.methods.verifyPhone = async function (code: string): Promise<void> {
 UsersSchema.pre("save", async function (next) {
 	const user: IUserDocument = this as IUserDocument;
 
-	if (user.isModified("password")) {
+	if (user.password && user.isModified("password")) {
 		user.password = hashSync(user.password, 12);
 	}
 

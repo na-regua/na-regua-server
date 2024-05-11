@@ -20,7 +20,7 @@ class TwilioRepository {
 				.services(TWILIO_SERVICE_SID)
 				.verifications.create({
 					to: `+55 ${phone}`,
-					channel: "whatsapp",
+					channel: "sms",
 				});
 
 			return OTPResponse;

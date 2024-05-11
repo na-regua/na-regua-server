@@ -54,7 +54,6 @@ class SocketServer {
 
 	onConnection() {
 		this.io.on("connection", (socket: Socket) => {
-			console.log("Socket connected");
 			const user = (socket.request as any).session.user;
 
 			const queueEvents = new SocketQueueEvents(socket, user);

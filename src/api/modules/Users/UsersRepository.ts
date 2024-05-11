@@ -5,6 +5,7 @@ import { Request, Response } from "express";
 import { IUserDocument, TUser, UsersModel } from ".";
 import { TwilioRepository } from "../Twilio";
 import { FilesModel, TUploadedFile } from "../Files";
+import { cloudinaryDestroy } from "@config/multer";
 
 class UsersRepository {
 	async index(_: Request, res: Response): Promise<Response<TUser[]>> {
@@ -67,6 +68,13 @@ class UsersRepository {
 
 			if (!user) {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+			}
+
+			const avatarFile = await FilesModel.findById(user.avatar);
+
+			if (avatarFile) {
+				await cloudinaryDestroy(avatarFile.filename);
+				await avatarFile.deleteOne();
 			}
 
 			await user.deleteOne();
