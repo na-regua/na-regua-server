@@ -27,7 +27,7 @@ export enum ENDPOINTS {
 	 * */
 	FILES_BARBER = "/files/barber",
 	FILES_USER = "/files/user",
-	FILES_UPDATE_USER = "/files/:avatarId/user",
+	FILES_UPDATE_USER_AVATAR = "/files/:avatarId/user",
 	FILES_UPDATE_BARBER_AVATAR = "/files/:avatarId/barber/",
 	FILES_UPDATE_BARBER_THUMB = "/files/barber/thumb/:thumbId",
 	FILES_UPLOAD_BARBER_THUMBS = "/files/barber/thumb/",

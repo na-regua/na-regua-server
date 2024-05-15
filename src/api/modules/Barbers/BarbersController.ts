@@ -15,7 +15,7 @@ export class BarbersController extends BaseController {
 			ENDPOINTS.BARBERS_BY_TOKEN,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
-			BarbersRepository.show
+			BarbersRepository.byToken
 		);
 
 		this.router.put(

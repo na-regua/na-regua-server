@@ -15,7 +15,7 @@ export class FilesController extends BaseController {
 		);
 
 		this.router.put(
-			ENDPOINTS.FILES_UPDATE_USER,
+			ENDPOINTS.FILES_UPDATE_USER_AVATAR,
 			cloudinaryStorage.single("file"),
 			AuthRepository.isAuthenticated,
 			FilesRepository.updateUserAvatar

@@ -48,4 +48,7 @@ export type ISocketEventType =
 	| "USER_IS_NOT_WORKER"
 	| "USER_DENIED"
 	| "USER_APPROVED"
-	| "USER_JOINED";
+	| "USER_JOINED"
+	| "WORKER_APPROVED_YOU"
+	| "WORKER_DENIED_YOU"
+	;

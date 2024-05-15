@@ -67,6 +67,13 @@ export class SocketQueueEvents {
 		this.socket.on(SocketUrls.WorkerResumeQueue, () =>
 			this.workerResumeQueue()
 		);
+
+		this.socket.on(SocketUrls.WorkerDenyCustomerRequest, (data) =>
+			this.workerDenyCustomerRequest(data)
+		);
+		this.socket.on(SocketUrls.WorkerApproveCustomerRequest, (data) =>
+			this.workerApproveCustomerRequest(data)
+		);
 	}
 
 	// Worker join queue
@@ -188,7 +195,9 @@ export class SocketQueueEvents {
 		});
 
 		// Emit events to room
-		this.globalIo.emitGlobalEvent(barber._id.toString(), "USER_JOINED");
+		this.globalIo.emitGlobalEvent(barber._id.toString(), "USER_JOINED", {
+			customer: this.user,
+		});
 
 		// Create notification for workers
 		const messageType: NotificationMessageType = isCustomer
@@ -200,6 +209,7 @@ export class SocketQueueEvents {
 			messageType,
 			{
 				service,
+				customer: this.user,
 			},
 			this.user.avatar._id.toString()
 		);
@@ -229,9 +239,144 @@ export class SocketQueueEvents {
 		const { queue, worker } = getQueue;
 	}
 	// Worker approve customer request
-	private workerApproveCustomerRequest() {}
+	private async workerApproveCustomerRequest(data: any) {
+		const getQueue = await this.getQueueDataByUserWorker();
+
+		if (!getQueue) {
+			return;
+		}
+
+		const { queue, worker } = getQueue;
+
+		// Check if ticket exists
+		const { ticketId } = data;
+
+		const ticket = await TicketsModel.findById(ticketId).populate("customer");
+
+		if (!ticket) {
+			return;
+		}
+
+		// Check if ticket is in queue
+		if (!queue.tickets.some((t) => t._id.toString() === ticketId)) {
+			return;
+		}
+
+		// Update ticket status
+		const newStatus = ticket.type === "queue" ? "queue" : "scheduled";
+
+		await ticket.updateOne({ approved: true, status: newStatus });
+
+		await worker.populate("barber");
+		await worker.populate("user");
+		await ticket.populate("customer");
+
+		// Emit event to ticket user
+
+		this.globalIo.emitGlobalEvent(
+			ticket.customer._id.toString(),
+			"WORKER_APPROVED_YOU",
+			{
+				worker,
+			}
+		);
+
+		const updatedTicket = await TicketsModel.findById(ticket._id);
+
+		if (updatedTicket) {
+			this.globalIo.io
+				.to(ticket.customer._id.toString())
+				.emit(SocketUrls.GetTicket, { ticket: updatedTicket });
+		}
+
+		// Emit events to barber workers
+
+		this.globalIo.emitGlobalEvent(
+			worker.barber._id.toString(),
+			"USER_APPROVED",
+			{
+				customer: ticket.customer,
+				worker,
+			}
+		);
+
+		const updatedQueue = await QueueModel.findById(queue._id);
+
+		if (updatedQueue) {
+			await updatedQueue.populateAll();
+			this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		}
+	}
 	// Worker deny customer request
-	private workerDenyCustomerRequest() {}
+	private async workerDenyCustomerRequest(data: any) {
+		const getQueue = await this.getQueueDataByUserWorker();
+
+		if (!getQueue) {
+			return;
+		}
+
+		const { queue, worker } = getQueue;
+
+		// Check if ticket exists
+		const { ticketId } = data;
+
+		const ticket = await TicketsModel.findById(ticketId);
+
+		if (!ticket) {
+			return;
+		}
+
+		// Check if ticket is in queue
+		if (!queue.tickets.some((t) => t._id.toString() === ticketId)) {
+			return;
+		}
+
+		// Remove ticket from queue
+		await queue.updateOne({
+			$pull: {
+				tickets: ticketId,
+			},
+		});
+
+		// Update ticket status
+		await ticket.updateOne({ approved: false, status: "missed" });
+
+		await worker.populate("barber");
+		await worker.populate("user");
+		await ticket.populate("customer");
+
+		// Emit event to ticket user
+
+		this.globalIo.emitGlobalEvent(
+			ticket.customer._id.toString(),
+			"WORKER_DENIED_YOU",
+			{
+				worker,
+			}
+		);
+
+		const updatedTicket = await TicketsModel.findById(ticket._id);
+
+		if (updatedTicket) {
+			this.globalIo.io
+				.to(ticket.customer._id.toString())
+				.emit(SocketUrls.GetTicket, { ticket: updatedTicket });
+		}
+
+		// Emit events to barber workers
+
+		this.globalIo.emitGlobalEvent(worker.barber._id.toString(), "USER_DENIED", {
+			customer: ticket.customer,
+			worker,
+		});
+
+		const updatedQueue = await QueueModel.findById(queue._id);
+
+		if (updatedQueue) {
+			await updatedQueue.populateAll();
+			this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		}
+	}
 	// Worker finish queue
 	private workerFinishQueue() {}
 	// Worker pause queue

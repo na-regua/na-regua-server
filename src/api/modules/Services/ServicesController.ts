@@ -12,7 +12,6 @@ class ServicesController extends BaseController {
 		this.router.get(
 			ENDPOINTS.SERVICES_LIST,
 			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
 			ServicesRepository.index
 		);
 

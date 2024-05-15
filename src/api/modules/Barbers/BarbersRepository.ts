@@ -1,7 +1,8 @@
 import { cloudinaryDestroy } from "@config/multer";
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
-import { generateRandomCode } from "@utils/index";
+import { diacriticSensitiveRegex, generateRandomCode } from "@utils/index";
 import { Request, Response } from "express";
+import { FilterQuery } from "mongoose";
 import { FilesModel, IFileDocument, TUploadedFile } from "../Files/FilesSchema";
 import { ServicesModel } from "../Services";
 import { TUser, UsersModel } from "../Users";
@@ -9,17 +10,40 @@ import { WorkersModel } from "../Workers";
 import { BarbersModel, IBarberDocument, TBarber } from "./BarbersSchema";
 
 class BarbersRepository {
-	async index(_: Request, res: Response): Promise<Response<TBarber[]>> {
+	async index(req: Request, res: Response): Promise<Response<TBarber>> {
 		try {
-			const barbers = await BarbersModel.find();
+			const { search } = req.query;
+
+			let filterQuery: FilterQuery<IBarberDocument> = {};
+
+			const cleanedSearch = diacriticSensitiveRegex(
+				(search as string).toLocaleLowerCase()
+			);
+
+			if (search && typeof search === "string") {
+				filterQuery = {
+					$or: [
+						{ name: { $regex: new RegExp("^" + cleanedSearch, "i") } },
+						{ code: { $regex: new RegExp("^" + cleanedSearch, "i") } },
+					],
+				};
+			}
+
+			const barbers = await BarbersModel.find(filterQuery);
+
+			await Promise.all(
+				barbers.map(async (barber) => {
+					await barber.populateAll();
+				})
+			);
 
 			return res.status(200).json(barbers);
-		} catch (err: any) {
-			return errorHandler(err, res);
+		} catch (error) {
+			return errorHandler(error, res);
 		}
 	}
 
-	async show(_: Request, res: Response): Promise<Response<TBarber>> {
+	async byToken(_: Request, res: Response): Promise<Response<TBarber>> {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 
