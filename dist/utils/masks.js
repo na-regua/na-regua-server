@@ -1,1 +1,0 @@
-'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.datePattern=exports.onlyNumbers=void 0;const onlyNumbers=value=>value.replace(/\D/g,'');exports.onlyNumbers=onlyNumbers;exports.datePattern=/^\d{2}\/\d{2}\/\d{4}$/;
