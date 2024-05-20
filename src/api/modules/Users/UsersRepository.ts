@@ -1,14 +1,14 @@
+import { cloudinaryDestroy } from "@config/multer";
 import { HttpException } from "@core/HttpException/HttpException";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
 import { IUserDocument, TUser, UsersModel } from ".";
-import { TwilioRepository } from "../Twilio";
 import { FilesModel, TUploadedFile } from "../Files";
-import { cloudinaryDestroy } from "@config/multer";
+import { TwilioRepository } from "../Twilio";
 
 class UsersRepository {
-	async index(_: Request, res: Response): Promise<Response<TUser[]>> {
+	async list(_: Request, res: Response): Promise<Response<TUser[]>> {
 		try {
 			const users = await UsersModel.find().populate("avatar", "-_id");
 
@@ -28,10 +28,10 @@ class UsersRepository {
 			}
 
 			const avatarFile = await FilesModel.create({
+				original_name: file.originalname,
 				filename: file.filename,
 				url: file.path,
-				originalName: file.originalname,
-				mimeType: file.mimetype,
+				mimetype: file.mimetype,
 			});
 
 			body.avatar = avatarFile._id;
@@ -121,6 +121,36 @@ class UsersRepository {
 			await user.updateOne({ verified: true });
 
 			return res.status(200).json(verification);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async favoriteBarber(req: Request, res: Response): Promise<Response<null>> {
+		try {
+			const { barberId } = req.params;
+
+			const user: IUserDocument = res.locals.user;
+
+			const barber = await UsersModel.findById(barberId);
+
+			if (!barber) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			const isFavorite =
+				user.favorites &&
+				user.favorites.some((fav) => fav._id.toString() === barberId);
+
+			if (isFavorite) {
+				await user.updateOne({ $pull: { favorites: barberId } });
+			}
+
+			if (!isFavorite) {
+				await user.updateOne({ $push: { favorites: barberId } });
+			}
+
+			return res.status(204).json(null);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

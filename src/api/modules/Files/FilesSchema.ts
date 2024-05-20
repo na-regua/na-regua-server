@@ -8,7 +8,7 @@ const FilesSchema = new Schema(
 			required: true,
 			unique: true,
 		},
-		originalName: {
+		original_name: {
 			type: String,
 		},
 		// localPath: {
@@ -18,7 +18,7 @@ const FilesSchema = new Schema(
 			type: String,
 			required: true,
 		},
-		mimeType: {
+		mimetype: {
 			type: String,
 			required: true,
 		},

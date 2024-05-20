@@ -1,9 +1,18 @@
-import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
+import {
+	HttpException,
+	SYSTEM_ERRORS,
+	SocketUrls,
+	errorHandler,
+} from "@core/index";
 import { Request, Response } from "express";
-import { IBarberDocument } from "../Barbers";
+import { BarbersModel, IBarberDocument } from "../Barbers";
 import { IUserDocument } from "../Users";
 import { QueueModel } from "./QueueSchema";
 import { getTodayAndNextTo } from "@utils/index";
+import { ITicketsDocument, TicketsModel } from "../Tickets";
+import { ServicesModel } from "../Services";
+import { GlobalSocket } from "app";
+import { IWorkerDocument } from "../Workers";
 
 class QueueRepository {
 	async index(req: Request, res: Response) {
@@ -69,6 +78,167 @@ class QueueRepository {
 			await queue?.populateAll();
 
 			return res.status(200).json({ queue });
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async getBarberTodayQueue(req: Request, res: Response) {
+		try {
+			const { barberId } = req.params;
+
+			const barber = await BarbersModel.findById(barberId);
+
+			if (!barber) {
+				return new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			const { nextDay, today } = getTodayAndNextTo(1);
+
+			const queue = await QueueModel.findOne({
+				barber: barber._id,
+				status: { $in: ["on", "paused"] },
+				createdAt: {
+					$gte: today,
+					$lt: nextDay,
+				},
+			});
+
+			await queue?.populateAll();
+
+			return res.status(200).json({ queue });
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async userJoinQueue(req: Request, res: Response) {
+		try {
+			const user: IUserDocument = res.locals.user;
+
+			const { code, serviceId } = req.body;
+
+			const service = await ServicesModel.findById(serviceId);
+
+			if (!service) {
+				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
+			}
+
+			const barber = await BarbersModel.findOne({ code });
+
+			if (!barber) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			if (!barber.open) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_IS_CLOSED);
+			}
+
+			const queue = await QueueModel.findBarberTodayQueue(
+				barber._id.toString()
+			);
+
+			if (!queue) {
+				throw new HttpException(400, SYSTEM_ERRORS.QUEUE_NOT_FOUND);
+			}
+
+			// Check if user is already in queue
+			await queue.populate("tickets");
+
+			const isUserInQueue = queue.tickets.some(
+				(ticket: any) =>
+					(ticket as ITicketsDocument).customer._id.toString() ===
+					user._id.toString()
+			);
+
+			if (isUserInQueue) {
+				throw new HttpException(400, SYSTEM_ERRORS.USER_ALREADY_IN_QUEUE);
+			}
+			// Check if user is already a customer in barber
+			const isCustomer = barber.customers.find(
+				(customer) => customer._id.toString() === user._id.toString()
+			);
+			// Calculate position
+			const customerPosition = isCustomer
+				? (await QueueModel.findLastPosition(queue._id)) + 1
+				: 0;
+			// Create ticket for queue
+			const ticket = await TicketsModel.create({
+				queue: {
+					queue_dto: queue._id,
+					position: customerPosition,
+					date: queue.createdAt,
+				},
+				type: "queue",
+				customer: user._id,
+				service: service._id,
+				barber: barber._id,
+				approved: !!isCustomer,
+				status: isCustomer ? "queue" : "pending",
+			});
+
+			await queue.updateOne({
+				$push: {
+					tickets: ticket._id,
+				},
+			});
+			await queue.save();
+
+			// Emit queue data update to queue room
+			const updatedQueue = await QueueModel.findById(queue._id);
+			await updatedQueue?.populateAll();
+
+			GlobalSocket.io.to(queue._id.toString()).emit(SocketUrls.GetQueue, {
+				queue: updatedQueue,
+			});
+
+			GlobalSocket.emitGlobalEvent(barber._id.toString(), "USER_JOINED", {
+				customer: user,
+			});
+
+			await ticket.populateAll();
+
+			return res.status(200).json({ ticket });
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async workerJoinQueue(req: Request, res: Response) {
+		try {
+			const worker: IWorkerDocument = res.locals.worker;
+
+			const queue = await QueueModel.findBarberTodayQueue(
+				worker.barber._id.toString()
+			);
+
+			if (!queue) {
+				throw new HttpException(400, SYSTEM_ERRORS.QUEUE_NOT_FOUND);
+			}
+
+			// Check if worker isn't in queue
+			if (
+				!queue.workers.some(
+					(worker) => worker._id.toString() === worker._id.toString()
+				)
+			) {
+				await queue.updateOne({
+					$push: { workers: worker._id },
+				});
+			}
+
+			await queue.populateAll();
+			await worker.populate("user");
+
+			GlobalSocket.emitGlobalEvent(
+				queue._id.toString(),
+				"WORKER_JOINED_QUEUE",
+				{
+					worker,
+				}
+			);
+
+			return res.json({ queue });
 		} catch (error) {
 			return errorHandler(error, res);
 		}

@@ -35,7 +35,7 @@ export class SchedulesRepository {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 
-			const barberLimit = barber.config?.scheduleLimitDays || 30;
+			const barberLimit = barber.config?.schedule_limit_days || 30;
 			const fromDate = new Date();
 			const limitDate = new Date(fromDate);
 			limitDate.setDate(limitDate.getDate() + barberLimit);

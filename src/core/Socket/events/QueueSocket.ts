@@ -1,6 +1,7 @@
 import {
 	BarbersModel,
 	IQueueDocument,
+	ITicketsDocument,
 	IUserDocument,
 	IWorkerDocument,
 	NotificationMessageType,
@@ -10,11 +11,11 @@ import {
 	WorkersModel,
 } from "@api/modules";
 import NotificationsRepository from "@api/modules/Notifications/NotificationsRepository";
-import { GlobalSocket } from "../../../app";
 import { Socket } from "socket.io";
+import { GlobalSocket } from "../../../app";
 import { SocketUrls } from "../SocketModel";
 
-export class SocketQueueEvents {
+export class QueueSocketEvents {
 	socket!: Socket;
 	user!: IUserDocument;
 
@@ -29,6 +30,28 @@ export class SocketQueueEvents {
 	constructor(socket: Socket, user: IUserDocument) {
 		this.socket = socket;
 		this.user = user;
+	}
+
+	init(): void {
+		this.socket.on(SocketUrls.WorkerJoinQueue, () => this.workerJoinQueue());
+		this.socket.on(SocketUrls.UserJoinTicketChannels, (data) =>
+			this.userJoinTicketChannels(data)
+		);
+		this.socket.on(SocketUrls.UserLeaveTicketChannels, (data) =>
+			this.userLeaveQueueChannels(data)
+		);
+
+		this.socket.on(SocketUrls.WorkerPauseQueue, () => this.workerPauseQueue());
+		this.socket.on(SocketUrls.WorkerResumeQueue, () =>
+			this.workerResumeQueue()
+		);
+
+		this.socket.on(SocketUrls.WorkerDenyCustomerRequest, (data) =>
+			this.workerDenyCustomerRequest(data)
+		);
+		this.socket.on(SocketUrls.WorkerApproveCustomerRequest, (data) =>
+			this.workerApproveCustomerRequest(data)
+		);
 	}
 
 	async getQueueDataByUserWorker(): Promise<{
@@ -55,25 +78,6 @@ export class SocketQueueEvents {
 		}
 
 		return { queue, worker };
-	}
-
-	init(): void {
-		this.socket.on(SocketUrls.WorkerJoinQueue, () => this.workerJoinQueue());
-		this.socket.on(SocketUrls.UserJoinQueue, (data) =>
-			this.userJoinQueue(data)
-		);
-
-		this.socket.on(SocketUrls.WorkerPauseQueue, () => this.workerPauseQueue());
-		this.socket.on(SocketUrls.WorkerResumeQueue, () =>
-			this.workerResumeQueue()
-		);
-
-		this.socket.on(SocketUrls.WorkerDenyCustomerRequest, (data) =>
-			this.workerDenyCustomerRequest(data)
-		);
-		this.socket.on(SocketUrls.WorkerApproveCustomerRequest, (data) =>
-			this.workerApproveCustomerRequest(data)
-		);
 	}
 
 	// Worker join queue
@@ -106,7 +110,7 @@ export class SocketQueueEvents {
 		});
 
 		// Join queue room
-		this.socket.join(queue._id.toString());
+		await this.socket.join(queue._id.toString());
 		// Join barber room
 		await this.socket.join(worker.barber._id.toString());
 
@@ -118,102 +122,41 @@ export class SocketQueueEvents {
 			this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
 		}
 	}
-	// User join queue
-	private async userJoinQueue(data: any) {
-		const { code, serviceId } = data;
+	// User join queue channels
+	private async userJoinTicketChannels(data: any) {
+		const { ticketId } = data;
 
-		const service = await ServicesModel.findById(serviceId);
+		const ticket = await TicketsModel.findById(ticketId);
 
-		if (!service) {
-			return;
+		if (ticket && ticket.type === "queue" && ticket.queue) {
+			const queue = await QueueModel.findById(ticket.queue.queue_dto);
+
+			if (queue) {
+				this.socket.join(queue._id.toString());
+				this.socket.join(ticket._id.toString());
+			}
 		}
-
-		const barber = await BarbersModel.findOne({ code });
-
-		if (!barber) {
-			this.globalIo.emitEvent(this.socket, "BARBER_NOT_FOUND");
-			return;
-		}
-
-		if (!barber.open) {
-			this.globalIo.emitEvent(this.socket, "BARBER_IS_CLOSED");
-			return;
-		}
-
-		const queue = await QueueModel.findBarberTodayQueue(barber._id.toString());
-
-		if (!queue) {
-			this.globalIo.emitEvent(this.socket, "QUEUE_NOT_FOUND");
-			return;
-		}
-
-		// Check if user is already in queue
-
-		// Calculate position
-
-		// Check if user is already a customer in barber
-		const isCustomer = barber.customers.find(
-			(customerId) => customerId.toString() === this.user._id.toString()
-		);
-		// Create ticket for queue
-		const ticket = await TicketsModel.create({
-			queue: { queueDTO: queue._id, position: 0 },
-			type: "queue",
-			customer: this.user._id,
-			service: service._id,
-			barber: barber._id,
-			approved: isCustomer,
-			status: isCustomer ? "queue" : "pending",
-		});
-
-		if (!ticket) {
-			this.globalIo.emitEvent(this.socket, "TICKET_NOT_CREATED");
-			return;
-		}
-
-		await queue.updateOne({
-			$push: {
-				tickets: ticket._id,
-			},
-		});
-		await queue.save();
-
-		// Join queue room
-		await this.socket.join(queue._id.toString());
-		// Join ticket room
-		await this.socket.join(ticket._id.toString());
-
-		// Emit ticket data to user
-		this.socket.emit(SocketUrls.GetTicket, {
-			ticket,
-		});
-		// Emit queue data to workers
-		const updatedQueue = await QueueModel.findById(queue._id);
-		await updatedQueue?.populateAll();
-		this.socket.to(queue._id.toString()).emit(SocketUrls.GetQueue, {
-			queue: updatedQueue,
-		});
-
-		// Emit events to room
-		this.globalIo.emitGlobalEvent(barber._id.toString(), "USER_JOINED", {
-			customer: this.user,
-		});
-
-		// Create notification for workers
-		const messageType: NotificationMessageType = isCustomer
-			? "CUSTOMER_JOINED_QUEUE"
-			: "USER_ASK_TO_JOIN_QUEUE";
-
-		await NotificationsRepository.notifyQueueWorkers(
-			queue._id.toString(),
-			messageType,
-			{
-				service,
-				customer: this.user,
-			},
-			this.user.avatar._id.toString()
-		);
 	}
+	// User left queue channels
+	private async userLeaveQueueChannels(data: any) {
+		const { ticketId } = data;
+
+		const ticket = await TicketsModel.findById(ticketId);
+
+		if (ticket && ticket.type === "queue" && ticket.queue) {
+			const queue = await QueueModel.findById(ticket.queue.queue_dto);
+
+			if (queue) {
+				this.socket.leave(queue._id.toString());
+				this.socket.leave(ticket._id.toString());
+			}
+		}
+	}
+	// Worker join queue channels
+
+	// Worker left queue channels
+	private workerLeftQueueChannels() {}
+
 	// Worker leave queue
 	private workerLeaveQueue() {}
 	// User leave queue
@@ -251,7 +194,7 @@ export class SocketQueueEvents {
 		// Check if ticket exists
 		const { ticketId } = data;
 
-		const ticket = await TicketsModel.findById(ticketId).populate("customer");
+		const ticket = await TicketsModel.findById(ticketId);
 
 		if (!ticket) {
 			return;
@@ -269,42 +212,62 @@ export class SocketQueueEvents {
 
 		await worker.populate("barber");
 		await worker.populate("user");
-		await ticket.populate("customer");
+		await ticket.populateAll();
 
 		// Emit event to ticket user
-
-		this.globalIo.emitGlobalEvent(
-			ticket.customer._id.toString(),
-			"WORKER_APPROVED_YOU",
-			{
-				worker,
-			}
-		);
-
 		const updatedTicket = await TicketsModel.findById(ticket._id);
 
 		if (updatedTicket) {
+			await updatedTicket.populateAll();
+
 			this.globalIo.io
 				.to(ticket.customer._id.toString())
 				.emit(SocketUrls.GetTicket, { ticket: updatedTicket });
 		}
 
-		// Emit events to barber workers
-
-		this.globalIo.emitGlobalEvent(
-			worker.barber._id.toString(),
-			"USER_APPROVED",
-			{
-				customer: ticket.customer,
-				worker,
-			}
+		// Emit events to other queue workers
+		const otherBarbers = queue.workers.filter(
+			(w) => w._id.toString() !== worker._id.toString()
 		);
 
+		if (otherBarbers.length > 0) {
+			otherBarbers.forEach((w) => {
+				this.globalIo.emitGlobalEvent(w._id.toString(), "USER_APPROVED", {
+					customer: ticket.customer,
+					worker,
+				});
+			});
+		}
+
+		// Emit queue data to queue workers
 		const updatedQueue = await QueueModel.findById(queue._id);
 
 		if (updatedQueue) {
 			await updatedQueue.populateAll();
-			this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+			this.globalIo.io
+				.to(queue._id.toString())
+				.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		}
+
+		// Create notification for customer
+		const barber = await BarbersModel.findById(worker.barber._id.toString());
+
+		if (barber) {
+			await barber.updateOne({
+				$push: {
+					customers: ticket.customer._id.toString(),
+				},
+			});
+
+			const messageType: NotificationMessageType =
+				"WORKER_ADD_USER_AS_CUSTOMER";
+
+			await NotificationsRepository.notifyUser(
+				ticket.customer._id.toString(),
+				messageType,
+				{ worker },
+				(worker.user as any).avatar._id.toString()
+			);
 		}
 	}
 	// Worker deny customer request
@@ -334,16 +297,23 @@ export class SocketQueueEvents {
 		// Remove ticket from queue
 		await queue.updateOne({
 			$pull: {
-				tickets: ticketId,
+				tickets: ticket._id.toString(),
+			},
+			$push: {
+				misseds: ticket._id.toString(),
 			},
 		});
 
 		// Update ticket status
-		await ticket.updateOne({ approved: false, status: "missed" });
+		await ticket.updateOne({
+			approved: false,
+			status: "missed",
+			missedAt: new Date(),
+		});
 
 		await worker.populate("barber");
 		await worker.populate("user");
-		await ticket.populate("customer");
+		await ticket.populateAll();
 
 		// Emit event to ticket user
 
@@ -358,23 +328,34 @@ export class SocketQueueEvents {
 		const updatedTicket = await TicketsModel.findById(ticket._id);
 
 		if (updatedTicket) {
+			await updatedTicket.populateAll();
 			this.globalIo.io
 				.to(ticket.customer._id.toString())
 				.emit(SocketUrls.GetTicket, { ticket: updatedTicket });
 		}
 
 		// Emit events to barber workers
+		const otherBarbers = queue.workers.filter(
+			(w) => w._id.toString() !== worker._id.toString()
+		);
 
-		this.globalIo.emitGlobalEvent(worker.barber._id.toString(), "USER_DENIED", {
-			customer: ticket.customer,
-			worker,
-		});
+		if (otherBarbers.length > 0) {
+			otherBarbers.forEach((w) => {
+				this.globalIo.emitGlobalEvent(w._id.toString(), "USER_APPROVED", {
+					customer: ticket.customer,
+					worker,
+				});
+			});
+		}
 
+		// Emit queue data to queue workers
 		const updatedQueue = await QueueModel.findById(queue._id);
 
 		if (updatedQueue) {
 			await updatedQueue.populateAll();
-			this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+			this.socket
+				.to(queue._id.toString())
+				.emit(SocketUrls.GetQueue, { queue: updatedQueue });
 		}
 	}
 	// Worker finish queue

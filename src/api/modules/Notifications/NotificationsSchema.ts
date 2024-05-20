@@ -10,6 +10,7 @@ export type NotificationMessageType =
 	| "CUSTOMER_CANCELLED_APPOINTMENT"
 	| "USER_REJECTED_APPOINTMENT_RESCHEDULE"
 	| "GENERATED_STATEMENT"
+	| "WORKER_ADD_USER_AS_CUSTOMER"
 	| "OTHERS";
 
 const NotificationMessageType: NotificationMessageType[] = [
@@ -22,6 +23,7 @@ const NotificationMessageType: NotificationMessageType[] = [
 	"USER_WILL_BE_LATE_TO_APPOINTMENT",
 	"USER_REJECTED_APPOINTMENT_RESCHEDULE",
 	"GENERATED_STATEMENT",
+	"WORKER_ADD_USER_AS_CUSTOMER",
 	"OTHERS",
 ];
 
@@ -38,6 +40,10 @@ const NotificationDataSchema = new Schema(
 		customer: {
 			type: Schema.Types.ObjectId,
 			ref: "Users",
+		},
+		worker: {
+			type: Schema.Types.ObjectId,
+			ref: "Workers",
 		},
 	},
 	{ _id: false, versionKey: false }
@@ -79,7 +85,29 @@ type TNotification = InferSchemaType<typeof NotificationSchema>;
 
 interface INotificationDocument extends TNotification, Document {}
 
-interface INotificationModel extends Model<INotificationDocument> {}
+export const populateNotifications = async function (
+	arr: INotificationDocument[]
+) {
+	return Promise.all(
+		arr.map(async (notification) => {
+			await notification.populate("icon");
+			await notification.populate("to");
+			await notification.populate("data.service");
+			await notification.populate("data.user");
+			await notification.populate("data.customer");
+			await notification.populate({
+				path: "data.worker",
+				populate: { path: "user barber" },
+			});
+
+			return notification;
+		})
+	);
+};
+
+interface INotificationModel extends Model<INotificationDocument> {
+	populateData(): Promise<INotificationDocument>;
+}
 
 const NotificationsModel: INotificationModel = model<
 	INotificationDocument,

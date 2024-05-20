@@ -20,7 +20,7 @@ const ServicesSchema = new Schema(
 			required: true,
 			min: 0,
 		},
-		durationInMinutes: {
+		duration_in_minutes: {
 			type: Number,
 			required: true,
 			min: 0,
@@ -29,6 +29,10 @@ const ServicesSchema = new Schema(
 			type: String,
 			enum: ["navalha", "maquina", "pente"],
 			required: true,
+		},
+		additional: {
+			type: Boolean,
+			default: false,
 		},
 	},
 	{
@@ -44,12 +48,6 @@ interface IServiceDocument extends TService, Document {}
 
 ServicesSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 
-ServicesSchema.methods.toJSON = function (): TService {
-	const { barber, ...service } = this.toObject();
-
-	return { ...service, barberId: barber._id };
-};
-
 interface IServiceMethods {}
 
 interface IServicesModel extends Model<IServiceDocument, {}, IServiceMethods> {}
@@ -61,4 +59,5 @@ const ServicesModel: IServicesModel = model<IServiceDocument, IServicesModel>(
 
 export { IServicesModel, ServicesModel };
 
-export { IServiceDocument, ServicesSchema, TService };
+	export { IServiceDocument, ServicesSchema, TService };
+

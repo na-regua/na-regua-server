@@ -7,6 +7,7 @@ import {
 	Schema,
 	model,
 } from "mongoose";
+import { ITicketsDocument } from "../Tickets";
 const uniqueValidator = require("mongoose-unique-validator");
 
 const QueueSchema = new Schema(
@@ -116,7 +117,7 @@ QueueSchema.methods.populateAll = async function () {
 	// });
 };
 
-QueueSchema.statics.findLastPositionOfTicket = async function (
+QueueSchema.statics.findLastPosition = async function (
 	queueId: string
 ): Promise<number> {
 	const model: IQueueModel = this as IQueueModel;
@@ -124,16 +125,16 @@ QueueSchema.statics.findLastPositionOfTicket = async function (
 
 	await queue?.populateAll();
 
-	const approvedTickets: any[] = (queue?.tickets as any[]).filter(
-		(el) => el.approved === true
+	const tickets: ITicketsDocument[] = ((queue?.tickets as any[]) || []).map(
+		(el) => el
 	);
 
-	if (approvedTickets && approvedTickets.length > 0) {
-		const lastTicket = approvedTickets.reduce((prev, curr) =>
-			prev.position > curr.position ? prev : curr
-		);
+	if (tickets && tickets.length > 0) {
+		const positions = tickets.map((el) => el.queue?.position || 0);
 
-		return lastTicket.position;
+		const bigger = Math.max(...positions);
+
+		return bigger;
 	}
 
 	return 0;
@@ -169,7 +170,7 @@ QueueSchema.statics.findBarberTodayQueue = async function (
 interface IQueueMethods {}
 
 interface IQueueModel extends Model<IQueueDocument, {}, IQueueMethods> {
-	findLastPositionOfTicket: (queueId: string) => Promise<number>;
+	findLastPosition: (queueId: string) => Promise<number>;
 	findBarberTodayQueue(barberId: string): Promise<IQueueDocument | null>;
 	findQueueByCode(code: string): Promise<IQueueDocument | null>;
 }

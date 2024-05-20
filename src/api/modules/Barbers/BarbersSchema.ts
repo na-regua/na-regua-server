@@ -49,12 +49,12 @@ const getDayToWorkDays: Record<number, string> = {
 
 const AttendanceSchema = new Schema(
 	{
-		workDays: {
+		workdays: {
 			type: [String],
 			enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
 			default: ["mon", "tue", "wed", "thu", "fri"],
 		},
-		workTime: {
+		worktime: {
 			start: {
 				type: String,
 				default: "08:00",
@@ -64,25 +64,25 @@ const AttendanceSchema = new Schema(
 				default: "17:00",
 			},
 		},
-		openBarberAuto: {
+		open_barber_auto: {
 			type: Boolean,
 			default: false,
 		},
-		openQueueAuto: {
+		open_queue_auto: {
 			type: Boolean,
 			default: false,
 		},
-		scheduleLimitDays: {
+		schedule_limit_days: {
 			type: Number,
 			enum: [7, 15, 30],
 			default: 30,
 		},
-		schedulesByDay: {
+		schedules_by_day: {
 			type: Number,
 			default: 4,
 			required: true,
 		},
-		scheduleTimes: {
+		schedule_times: {
 			type: [String],
 		},
 	},
@@ -121,7 +121,7 @@ const BarbersSchema = new Schema(
 			enum: ["active", "inactive"],
 			default: "active",
 		},
-		profileStatus: {
+		profile_status: {
 			type: String,
 			enum: ["pre", "completed"],
 			default: "pre",
@@ -177,6 +177,7 @@ BarbersSchema.methods.populateAll =
 	async function (): Promise<IBarberDocument> {
 		await this.populate("avatar");
 		await this.populate("thumbs");
+		await this.populate("customers");
 
 		return this as IBarberDocument;
 	};

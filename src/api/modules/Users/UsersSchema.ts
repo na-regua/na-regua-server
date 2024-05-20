@@ -50,11 +50,14 @@ const UsersSchema = new mongoose.Schema(
 			type: mongoose.Schema.Types.ObjectId,
 			ref: "Workers",
 		},
-		temporaryPassword: Boolean,
-		accessToken: String,
+		access_token: String,
 		verified: {
 			type: Boolean,
 			default: false,
+		},
+		favorites: {
+			type: [mongoose.Schema.Types.ObjectId],
+			ref: "Barbers",
 		},
 	},
 	{
@@ -79,7 +82,7 @@ UsersSchema.methods.generateAuthToken = async function () {
 		expiresIn: "24h",
 	});
 
-	user.accessToken = token;
+	user.access_token = token;
 
 	await user.save();
 
@@ -87,7 +90,7 @@ UsersSchema.methods.generateAuthToken = async function () {
 };
 
 UsersSchema.methods.toJSON = function (): TUser {
-	const { password, accessToken, ...user } = this.toObject();
+	const { password, access_token, ...user } = this.toObject();
 
 	return user;
 };
@@ -127,14 +130,14 @@ UsersSchema.statics.findByPhone = async function (
 
 UsersSchema.statics.findByToken = async function (
 	token: string
-): Promise<IUserDocument> {
+): Promise<IUserDocument | HttpException> {
 	const UsersModel = this;
 	let decoded: any;
 
 	try {
 		decoded = verify(token, TOKEN_SECRET);
 	} catch {
-		throw new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
+		return new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
 	}
 
 	const user = await UsersModel.findOne({
@@ -142,11 +145,11 @@ UsersSchema.statics.findByToken = async function (
 	});
 
 	if (!user) {
-		throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+		return new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
 	}
 
-	if (user.accessToken !== token) {
-		throw new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
+	if (user.access_token !== token) {
+		return new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
 	}
 
 	return user;

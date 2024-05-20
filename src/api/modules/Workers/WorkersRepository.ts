@@ -44,10 +44,10 @@ class WorkersRepository {
 			const barber: IBarberDocument = res.locals.barber;
 
 			const avatarFile = await FilesModel.create({
+				original_name: file.originalname,
 				filename: file.filename,
-				originalName: file.originalname,
 				url: file.path,
-				mimeType: file.mimetype,
+				mimetype: file.mimetype,
 			});
 
 			body.avatar = avatarFile._id;
@@ -132,10 +132,10 @@ class WorkersRepository {
 				await Promise.all([
 					cloudinaryDestroy(avatarFile.filename),
 					avatarFile.updateOne({
-						originalName: file.originalname,
+						original_name: file.originalname,
 						filename: file.filename,
 						url: file.path,
-						mimeType: file.mimetype,
+						mimetype: file.mimetype,
 					}),
 				]);
 			}

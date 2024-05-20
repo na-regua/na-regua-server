@@ -27,10 +27,10 @@ const uploadFile = multer({
 			[".png", ".jpg", ".jpeg"].indexOf(
 				path.extname(file.originalname).toLowerCase()
 			) >= 0;
-		const mimeType: boolean =
+		const mimetype: boolean =
 			["image/png", "image/jpg", "image/jpeg"].indexOf(file.mimetype) >= 0;
 
-		if (extension && mimeType) {
+		if (extension && mimetype) {
 			return callback(null, true);
 		}
 
@@ -61,10 +61,10 @@ const uploadFileArray = multer({
 			[".png", ".jpg", ".jpeg"].indexOf(
 				path.extname(file.originalname).toLowerCase()
 			) >= 0;
-		const mimeType: boolean =
+		const mimetype: boolean =
 			["image/png", "image/jpg", "image/jpeg"].indexOf(file.mimetype) >= 0;
 
-		if (extension && mimeType) {
+		if (extension && mimetype) {
 			return callback(null, true);
 		}
 

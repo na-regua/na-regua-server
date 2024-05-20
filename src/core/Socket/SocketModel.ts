@@ -1,6 +1,5 @@
 export enum SocketUrls {
 	WorkerJoinQueue = "queue/worker/join",
-	UserJoinQueue = "queue/user/join",
 	WorkerLeaveQueue = "queue/worker/leave",
 	WorkerServeCustomer = "queue/worker/serve",
 	WorkerMissCustomer = "queue/worker/miss",
@@ -9,6 +8,9 @@ export enum SocketUrls {
 	WorkerFinishQueue = "queue/worker/finish",
 	WorkerPauseQueue = "queue/worker/pause",
 	WorkerResumeQueue = "queue/worker/resume",
+
+	UserJoinTicketChannels = "channel/user/join/ticket",
+	UserLeaveTicketChannels = "channel/user/leave/ticket",
 
 	GetQueue = "queue/get",
 	GetTicket = "ticket/get",
@@ -51,4 +53,5 @@ export type ISocketEventType =
 	| "USER_JOINED"
 	| "WORKER_APPROVED_YOU"
 	| "WORKER_DENIED_YOU"
-	;
+	| "USER_ALREADY_IN_QUEUE"
+	| "USER_IN_OTHER_QUEUE";

@@ -1,1 +1,1 @@
-export * from "./SocketQueue";
+export * from "./QueueSocket";

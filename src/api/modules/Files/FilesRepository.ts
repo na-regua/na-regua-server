@@ -36,10 +36,10 @@ class FilesRepository {
 			await Promise.all([
 				cloudinaryDestroy(avatarFile.filename),
 				avatarFile.updateOne({
-					originalName: file.originalname,
+					original_name: file.originalname,
 					filename: file.filename,
 					url: file.path,
-					mimeType: file.mimetype,
+					mimetype: file.mimetype,
 				}),
 			]);
 
@@ -80,10 +80,10 @@ class FilesRepository {
 			await Promise.all([
 				cloudinaryDestroy(avatarFile.filename),
 				avatarFile.updateOne({
-					originalName: file.originalname,
+					original_name: file.originalname,
 					filename: file.filename,
 					url: file.path,
-					mimeType: file.mimetype,
+					mimetype: file.mimetype,
 				}),
 			]);
 
@@ -115,10 +115,10 @@ class FilesRepository {
 			 * Create new thumbs
 			 */
 			const newThumb = await FilesModel.create({
-				originalName: file.originalname,
+				original_name: file.originalname,
 				filename: file.filename,
 				url: file.path,
-				mimeType: file.mimetype,
+				mimetype: file.mimetype,
 			});
 
 			if (!newThumb) {
@@ -172,10 +172,10 @@ class FilesRepository {
 			await Promise.all(
 				files.map(async (file) => {
 					const newThumb = await FilesModel.create({
-						originalName: file.originalname,
+						original_name: file.originalname,
 						filename: file.filename,
 						url: file.path,
-						mimeType: file.mimetype,
+						mimetype: file.mimetype,
 					});
 
 					if (!newThumb) {

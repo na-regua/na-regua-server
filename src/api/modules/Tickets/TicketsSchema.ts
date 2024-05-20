@@ -10,7 +10,7 @@ import { IBarberDocument, getDayToWorkDays } from "../Barbers";
 
 const QueueDataSchema = new Schema(
 	{
-		queueDTO: {
+		queue_dto: {
 			type: Schema.Types.ObjectId,
 			ref: "Queues",
 			required: true,
@@ -19,8 +19,13 @@ const QueueDataSchema = new Schema(
 			type: Number,
 			required: true,
 		},
+		date: {
+			type: Date,
+			required: true,
+		},
 	},
 	{
+		_id: false,
 		versionKey: false,
 		timestamps: false,
 	}
@@ -38,6 +43,7 @@ const ScheduleSchema = new Schema(
 		},
 	},
 	{
+		_id: false,
 		versionKey: false,
 		timestamps: false,
 	}
@@ -78,7 +84,7 @@ const TicketsSchema = new Schema(
 		},
 		billed: { type: Boolean, default: false },
 		approved: { type: Boolean, default: false },
-		servedBy: {
+		served_by: {
 			type: Schema.Types.ObjectId,
 			ref: "Workers",
 		},
@@ -96,19 +102,21 @@ type TTicket = InferSchemaType<typeof TicketsSchema>;
 
 interface ITicketsDocument extends TTicket, Document {}
 
-interface ITicketsMethods {}
+interface ITicketsMethods {
+	populateAll(): Promise<ITicketsDocument>;
+}
 
 TicketsSchema.statics.getSchedules = async function (
-	barberId: string,
+	barber_id: string,
 	filters?: GetSchedulesFilters
 ) {
 	const filter: FilterQuery<ITicketsDocument> = {
-		barber: barberId,
+		barber: barber_id,
 		type: "schedule",
 	};
 
 	if (filters) {
-		const { from, to, customerId } = filters;
+		const { from, to, customer_id } = filters;
 
 		if (from) {
 			const fromDate = new Date(from);
@@ -131,8 +139,8 @@ TicketsSchema.statics.getSchedules = async function (
 			}
 		}
 
-		if (customerId) {
-			filter.customer = customerId;
+		if (customer_id) {
+			filter.customer = customer_id;
 		}
 	}
 
@@ -151,7 +159,7 @@ TicketsSchema.statics.isValidScheduleDate = async function (
 	// Check if the date is in barber limit days
 	const today = new Date();
 
-	const limit = barber.config?.scheduleLimitDays || 30;
+	const limit = barber.config?.schedule_limit_days || 30;
 
 	const limitDate = new Date(today);
 	limitDate.setDate(limitDate.getDate() + limit);
@@ -168,7 +176,7 @@ TicketsSchema.statics.isValidScheduleDate = async function (
 	}
 
 	if (day) {
-		const isOnWorkDays = barber.config?.workDays.includes(day);
+		const isOnWorkDays = barber.config?.workdays.includes(day);
 
 		if (!isOnWorkDays) {
 			return false;
@@ -198,10 +206,25 @@ TicketsSchema.statics.isValidScheduleDate = async function (
 	return false;
 };
 
+TicketsSchema.methods.populateAll = async function () {
+	await this.populate("customer");
+	await this.populate({
+		path: "barber",
+		populate: {
+			path: "avatar",
+		},
+	});
+	await this.populate("service");
+	await this.populate("queue.queue_dto");
+	await this.populate("served_by");
+
+	return this;
+};
+
 interface GetSchedulesFilters {
 	from?: Date | string;
 	to?: Date | string;
-	customerId?: string;
+	customer_id?: string;
 	offset?: number;
 }
 
@@ -212,7 +235,7 @@ interface ITicketsModel extends Model<ITicketsDocument, {}, ITicketsMethods> {
 		time: string
 	): Promise<boolean>;
 	getSchedules(
-		barberId: string,
+		barber_id: string,
 		filters?: GetSchedulesFilters
 	): Promise<ITicketsDocument[]>;
 }

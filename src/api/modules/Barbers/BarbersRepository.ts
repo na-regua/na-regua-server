@@ -165,9 +165,9 @@ class BarbersRepository {
 			for (const thumb of files) {
 				const file = await FilesModel.create({
 					filename: thumb.filename,
-					originalName: thumb.originalname,
+					original_name: thumb.originalname,
 					url: thumb.path,
-					mimeType: thumb.mimetype,
+					mimetype: thumb.mimetype,
 				});
 
 				createdFiles.push(file._id);
@@ -238,13 +238,13 @@ class BarbersRepository {
 
 			res.locals.worker = adminWorker;
 
-			const accessToken = await adminUser.generateAuthToken();
+			const access_token = await adminUser.generateAuthToken();
 
 			const updatedBarber = await BarbersModel.findByIdAndUpdate(barber._id);
 
 			return res
 				.status(201)
-				.json({ barber: updatedBarber, user: adminUser, accessToken });
+				.json({ barber: updatedBarber, user: adminUser, access_token });
 		} catch (error) {
 			const { barber, user, worker } = res.locals;
 			const cloudFiles = res.locals.cloudFiles as TUploadedFile[];

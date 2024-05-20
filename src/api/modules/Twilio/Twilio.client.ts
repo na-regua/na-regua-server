@@ -25,7 +25,7 @@ class TwilioRepository {
 
 			return OTPResponse;
 		} catch (error: any) {
-			throw error;
+			return error;
 		}
 	}
 
@@ -47,7 +47,7 @@ class TwilioRepository {
 
 			return OTPResponse;
 		} catch (error: any) {
-			throw error;
+			return error;
 		}
 	}
 }

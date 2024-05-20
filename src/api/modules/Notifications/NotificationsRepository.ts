@@ -4,16 +4,17 @@ import {
 	SocketUrls,
 	errorHandler,
 } from "@core/index";
-import { GlobalSocket } from "../../../app";
 import { Request, Response } from "express";
 import { FilterQuery } from "mongoose";
+import { GlobalSocket } from "../../../app";
 import { QueueModel } from "../Queue";
-import { IUserDocument } from "../Users";
+import { IUserDocument, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
 import {
 	INotificationDocument,
 	NotificationMessageType,
 	NotificationsModel,
+	populateNotifications,
 } from "./NotificationsSchema";
 
 class CustomerServicesRepository {
@@ -55,15 +56,14 @@ class CustomerServicesRepository {
 			}));
 
 			const notifications = await NotificationsModel.find(params)
-				.populate("icon")
-				.populate("to")
-				.populate("data data.service data.user data.customer")
 				.sort({ createdAt: -1 })
 				.limit(limit ? +limit : 0);
 
 			if (!notifications) {
 				return res.status(200).json([]);
 			}
+
+			await populateNotifications(notifications);
 
 			return res.status(200).json({ notifications, total, hasUnread });
 		} catch (error) {
@@ -201,6 +201,38 @@ class CustomerServicesRepository {
 					.emit(SocketUrls.NewNotification, { notification });
 			}
 		});
+	}
+
+	async notifyUser(
+		userId: string,
+		message: NotificationMessageType,
+		data?: any,
+		icon?: string
+	) {
+		// Notify barber workers
+		const user = await UsersModel.findById(userId);
+		if (!user) {
+			return;
+		}
+
+		const notification = await NotificationsModel.create({
+			to: user._id.toString(),
+			message,
+			data,
+			icon,
+		});
+
+		if (!notification) {
+			return;
+		}
+
+		await populateNotifications([notification]);
+
+		if (GlobalSocket.io) {
+			GlobalSocket.io
+				.to(user._id.toString())
+				.emit(SocketUrls.NewNotification, { notification });
+		}
 	}
 }
 

@@ -1,16 +1,12 @@
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { NextFunction, Request, Response } from "express";
-import { FilterQuery } from "mongoose";
-import { BarbersModel, IBarberDocument, TBarber } from "../Barbers";
+import { BarbersModel, TBarber } from "../Barbers";
 import { TwilioRepository } from "../Twilio";
 import { IUserDocument, TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
 
 class AuthRepository {
-	async loginWithEmail(
-		req: Request,
-		res: Response
-	): Promise<Response<{ user: TUser; accessToken: string; barber: TBarber }>> {
+	async loginWithEmail(req: Request, res: Response) {
 		try {
 			const { email, password } = req.body;
 
@@ -25,7 +21,7 @@ class AuthRepository {
 			const user = await UsersModel.findByCredentials(email, password);
 
 			await user.populate("avatar");
-			const accessToken = await user.generateAuthToken();
+			const access_token = await user.generateAuthToken();
 
 			if (user.role !== "customer") {
 				const worker = await WorkersModel.findOne({ user: user._id });
@@ -42,19 +38,16 @@ class AuthRepository {
 
 				await barber.populateAll();
 
-				return res.status(200).json({ accessToken, barber, user });
+				return res.status(200).json({ access_token, barber, user });
 			}
 
-			return res.status(200).json({ accessToken, user });
+			return res.status(200).json({ access_token, user });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
 	}
 
-	async sendOTPCode(
-		req: Request,
-		res: Response
-	): Promise<Response<{ goToVerify: boolean }>> {
+	async sendOTPCode(req: Request, res: Response) {
 		try {
 			const { phone } = req.body;
 
@@ -72,10 +65,7 @@ class AuthRepository {
 		}
 	}
 
-	async verifyOTPCode(
-		req: Request,
-		res: Response
-	): Promise<Response<{ user: TUser; accessToken: string }>> {
+	async verifyOTPCode(req: Request, res: Response) {
 		try {
 			const { code, phone } = req.body;
 
@@ -90,7 +80,7 @@ class AuthRepository {
 			await user.updateOne({ verified: true });
 			await user.populate("avatar");
 
-			const accessToken = await user.generateAuthToken();
+			const access_token = await user.generateAuthToken();
 
 			if (user.role === "admin" || user.role === "worker") {
 				const worker = await WorkersModel.findOne({ user: user._id });
@@ -111,10 +101,10 @@ class AuthRepository {
 
 				await barber.populateAll();
 
-				return res.status(200).json({ accessToken, barber, user });
+				return res.status(200).json({ access_token, barber, user });
 			}
 
-			return res.status(200).json({ accessToken, user });
+			return res.status(200).json({ access_token, user });
 		} catch (error: any) {
 			if (error.code) {
 				return errorHandler(new HttpException(400, error.code), res);
@@ -124,11 +114,7 @@ class AuthRepository {
 		}
 	}
 
-	async isAuthenticated(
-		req: Request,
-		res: Response,
-		next: NextFunction
-	): Promise<any> {
+	async isAuthenticated(req: Request, res: Response, next: NextFunction) {
 		try {
 			let token = req.headers.authorization;
 
@@ -139,6 +125,11 @@ class AuthRepository {
 			token = token.replace("Bearer", "").trim();
 
 			const user = await UsersModel.findByToken(token);
+
+			if (user instanceof HttpException) {
+				throw user;
+			}
+
 			await user.populate("avatar");
 
 			if (!user) {
@@ -153,7 +144,7 @@ class AuthRepository {
 		}
 	}
 
-	async isAdmin(_: Request, res: Response, next: NextFunction): Promise<any> {
+	async isAdmin(_: Request, res: Response, next: NextFunction) {
 		try {
 			const { user } = res.locals;
 
@@ -181,11 +172,7 @@ class AuthRepository {
 		}
 	}
 
-	async workForBarber(
-		_: Request,
-		res: Response,
-		next: NextFunction
-	): Promise<any> {
+	async workForBarber(_: Request, res: Response, next: NextFunction) {
 		const { user } = res.locals;
 
 		const worker = await WorkersModel.findOne({ user: user._id });
@@ -206,15 +193,7 @@ class AuthRepository {
 		next();
 	}
 
-	async getCurrentUser(
-		_: Request,
-		res: Response
-	): Promise<
-		Response<{
-			user: TUser;
-			barber?: TBarber;
-		}>
-	> {
+	async getCurrentUser(_: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 			const response: { user: TUser; barber?: TBarber } = {
