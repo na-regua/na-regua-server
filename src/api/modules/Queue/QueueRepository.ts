@@ -5,7 +5,7 @@ import {
 	errorHandler,
 } from "@core/index";
 import { getTodayAndNextTo } from "@utils/index";
-import { GlobalSocket } from "app";
+import { GlobalSocket } from "../../../app";
 import { Request, Response } from "express";
 import { BarbersModel, IBarberDocument } from "../Barbers";
 import { ServicesModel } from "../Services";

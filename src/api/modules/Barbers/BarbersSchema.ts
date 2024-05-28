@@ -2,7 +2,7 @@ import { Model, model } from "mongoose";
 
 import { SocketUrls } from "@core/Socket";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
-import { GlobalSocket } from "app";
+import { GlobalSocket } from "../../../app";
 import { Document, InferSchemaType, Schema } from "mongoose";
 import { NotificationMessageType } from "../Notifications";
 import { TicketsModel } from "../Tickets";
