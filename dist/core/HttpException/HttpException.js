@@ -1,0 +1,1 @@
+'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.HttpException=void 0;const index_1=require('../index');class HttpException extends Error{constructor(status,message){if(index_1.SYSTEM_ERRORS[message]){message=index_1.SYSTEM_ERRORS[message];}super(message);this.status=status;this.message=message;}}exports.HttpException=HttpException;
