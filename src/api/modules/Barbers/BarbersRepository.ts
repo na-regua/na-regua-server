@@ -10,23 +10,25 @@ import { WorkersModel } from "../Workers";
 import { BarbersModel, IBarberDocument, TBarber } from "./BarbersSchema";
 
 class BarbersRepository {
-	async index(req: Request, res: Response): Promise<Response<TBarber>> {
+	async list(req: Request, res: Response): Promise<Response<TBarber>> {
 		try {
 			const { search } = req.query;
 
 			let filterQuery: FilterQuery<IBarberDocument> = {};
 
-			const cleanedSearch = diacriticSensitiveRegex(
-				(search as string).toLocaleLowerCase()
-			);
+			if (search) {
+				const cleanedSearch = diacriticSensitiveRegex(
+					(search as string).toLocaleLowerCase()
+				);
 
-			if (search && typeof search === "string") {
-				filterQuery = {
-					$or: [
-						{ name: { $regex: new RegExp("^" + cleanedSearch, "i") } },
-						{ code: { $regex: new RegExp("^" + cleanedSearch, "i") } },
-					],
-				};
+				if (search && typeof search === "string") {
+					filterQuery = {
+						$or: [
+							{ name: { $regex: new RegExp("^" + cleanedSearch, "i") } },
+							{ code: { $regex: new RegExp("^" + cleanedSearch, "i") } },
+						],
+					};
+				}
 			}
 
 			const barbers = await BarbersModel.find(filterQuery);
@@ -34,6 +36,7 @@ class BarbersRepository {
 			await Promise.all(
 				barbers.map(async (barber) => {
 					await barber.populateAll();
+					await barber.updateRating();
 				})
 			);
 
@@ -82,6 +85,8 @@ class BarbersRepository {
 			const body = req.body;
 
 			await barber.updateOne(body);
+
+			await BarbersModel.updateLiveInfo(barber._id.toString());
 
 			return res.status(204).json(null);
 		} catch (error) {
@@ -280,17 +285,43 @@ class BarbersRepository {
 		}
 	}
 
-	async openBarber(req: Request, res: Response): Promise<Response<null>> {
+	async setIsOpen(req: Request, res: Response): Promise<Response<null>> {
 		try {
+			const { open } = req.body;
+			const barber: IBarberDocument = res.locals.barber;
+
+			if (!barber) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			await barber.updateOne({
+				open,
+			});
+
+			await BarbersModel.updateLiveInfo(barber._id.toString());
+
 			return res.status(204).json(null);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
 	}
 
-	async closeBarber(req: Request, res: Response): Promise<Response<null>> {
+	async listCustomers(req: Request, res: Response): Promise<Response<TUser>> {
 		try {
-			return res.status(204).json(null);
+			const barber: IBarberDocument = res.locals.barber;
+
+			if (!barber) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			await barber.populate({
+				path: "customers",
+				populate: {
+					path: "avatar",
+				},
+			});
+
+			return res.status(200).json(barber.customers);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

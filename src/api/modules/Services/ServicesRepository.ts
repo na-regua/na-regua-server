@@ -17,6 +17,14 @@ class ServicesRepository {
 				filter.barber = query.barberId;
 			}
 
+			if (query.additional) {
+				filter.additional = query.additional;
+			}
+
+			if (query.all) {
+				delete filter.additional;
+			}
+
 			const services = await ServicesModel.find(filter);
 
 			return res.status(200).json(services);

@@ -1,7 +1,12 @@
 import { Model, model } from "mongoose";
 
+import { SocketUrls } from "@core/Socket";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
+import { GlobalSocket } from "app";
 import { Document, InferSchemaType, Schema } from "mongoose";
+import { NotificationMessageType } from "../Notifications";
+import { TicketsModel } from "../Tickets";
+import { UsersModel } from "../Users";
 
 const uniqueValidator = require("mongoose-unique-validator");
 
@@ -147,6 +152,10 @@ const BarbersSchema = new Schema(
 			ref: "Users",
 			default: [],
 		},
+		rating: {
+			type: Number,
+			default: 0,
+		},
 	},
 	{
 		versionKey: false,
@@ -159,11 +168,15 @@ type TBarber = InferSchemaType<typeof BarbersSchema>;
 
 interface IBarberDocument extends Document, TBarber {
 	populateAll(): Promise<IBarberDocument>;
+	updateRating(): Promise<void>;
 }
 
 interface IBarberMethods {}
 
-interface IBarbersModel extends Model<IBarberDocument, IBarberMethods> {}
+interface IBarbersModel extends Model<IBarberDocument, IBarberMethods> {
+	populateAll(): Promise<IBarbersModel>;
+	updateLiveInfo(barber_id: string, data?: Object): Promise<IBarberDocument>;
+}
 
 BarbersSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
 
@@ -181,6 +194,78 @@ BarbersSchema.methods.populateAll =
 
 		return this as IBarberDocument;
 	};
+
+BarbersSchema.methods.updateRating = async function (): Promise<void> {
+	const barber = this;
+
+	const ratings = await TicketsModel.find({
+		barber: barber._id.toString(),
+		status: "served",
+		rate: { $ne: null },
+	});
+
+	const sum = ratings.reduce(
+		(total, item) => total + (item.rate?.rating || 0),
+		0
+	);
+
+	const avg = sum / ratings.length;
+
+	const rounded = Math.round(avg * 2) / 2;
+
+	const rating = Math.max(0, Math.min(5, rounded));
+
+	await barber.updateOne({ rating }, {}, { new: true });
+
+	await barber.save();
+};
+
+BarbersSchema.statics.updateLiveInfo = async function (
+	barber_id: string,
+	data?: Object
+): Promise<void> {
+	const updatedBarber = await this.findById(barber_id);
+
+	if (updatedBarber) {
+		await updatedBarber.populateAll();
+
+		const socketUrl = SocketUrls.BarberInfo.replace("{{barberId}}", barber_id);
+		GlobalSocket.io.emit(socketUrl, {
+			barber: updatedBarber,
+			is_open: updatedBarber.open,
+			...data,
+		});
+
+		if (updatedBarber.open) {
+			const customersOrFavorites = await UsersModel.find({
+				$or: [
+					{ favorites: updatedBarber._id },
+					{ _id: { $in: updatedBarber.customers } },
+				],
+			});
+
+			if (customersOrFavorites) {
+				const notifyUrl = SocketUrls.BarberInfoNotification.replace(
+					"{{barberId}}",
+					barber_id
+				);
+
+				customersOrFavorites.forEach(async (customer) => {
+					GlobalSocket.io
+						.to(customer._id.toString())
+						.emit(SocketUrls.NewNotification, {
+							notification: {
+								message: "BARBER_IS_ON" as NotificationMessageType,
+								data: {
+									barber: updatedBarber,
+								},
+							},
+						});
+				});
+			}
+		}
+	}
+};
 
 BarbersSchema.pre("save", async function (next) {
 	const barber = this;

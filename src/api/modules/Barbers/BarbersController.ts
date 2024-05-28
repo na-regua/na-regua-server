@@ -9,7 +9,13 @@ export class BarbersController extends BaseController {
 	}
 
 	defineRoutes(): void {
-		this.router.get(ENDPOINTS.BARBERS_LIST, BarbersRepository.index);
+		this.router.get(ENDPOINTS.BARBERS_LIST, BarbersRepository.list);
+		this.router.get(
+			ENDPOINTS.BARBERS_CUSTOMERS,
+			AuthRepository.isAuthenticated,
+			AuthRepository.isAdmin,
+			BarbersRepository.listCustomers
+		);
 
 		this.router.get(
 			ENDPOINTS.BARBERS_BY_TOKEN,
@@ -45,18 +51,11 @@ export class BarbersController extends BaseController {
 			BarbersRepository.completeProfile
 		);
 
-		this.router.post(
+		this.router.put(
 			ENDPOINTS.BARBERS_OPEN,
 			AuthRepository.isAuthenticated,
 			AuthRepository.isAdmin,
-			BarbersRepository.openBarber
-		);
-
-		this.router.post(
-			ENDPOINTS.BARBERS_CLOSE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			BarbersRepository.closeBarber
+			BarbersRepository.setIsOpen
 		);
 	}
 }

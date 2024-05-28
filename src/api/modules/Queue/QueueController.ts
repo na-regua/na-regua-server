@@ -36,17 +36,12 @@ class QueueController extends BaseController {
 			QueueRepository.userJoinQueue
 		);
 
-		this.router.get(ENDPOINTS.QUEUE_LAST_POSITION, async (req, res) => {
-			try {
-				const queueId = req.params.queueId;
-
-				const position = await QueueModel.findLastPosition(queueId);
-
-				return res.json({ position });
-			} catch (error) {
-				return errorHandler(error, res);
-			}
-		});
+		this.router.post(
+			ENDPOINTS.QUEUE_JOIN_WORKER,
+			AuthRepository.isAuthenticated,
+			AuthRepository.workForBarber,
+			QueueRepository.workerJoinQueue
+		);
 	}
 }
 

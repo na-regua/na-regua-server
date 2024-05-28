@@ -11,9 +11,14 @@ export enum SocketUrls {
 
 	UserJoinTicketChannels = "channel/user/join/ticket",
 	UserLeaveTicketChannels = "channel/user/leave/ticket",
+	WorkerJoinQueueChannels = "channel/worker/join/queue",
+	WorkerLeaveQueueChannels = "channel/worker/leave/queue",
 
 	GetQueue = "queue/get",
 	GetTicket = "ticket/get",
+
+	BarberInfo = "barber/{{barberId}}",
+	BarberInfoNotification = "barber/{{barberId}}/notification",
 
 	NewNotification = "notifications/new",
 	Event = "events",

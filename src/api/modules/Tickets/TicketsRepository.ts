@@ -1,6 +1,7 @@
-import { errorHandler } from "@core/index";
+import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { getTodayAndNextTo } from "@utils/date";
 import { Request, Response } from "express";
+import { BarbersModel } from "../Barbers";
 import { IUserDocument } from "../Users";
 import { TicketsModel } from "./TicketsSchema";
 
@@ -75,6 +76,43 @@ class TicketsRepository {
 	}
 
 	async delete(req: Request, res: Response) {}
+
+	async rate(req: Request, res: Response) {
+		try {
+			const user: IUserDocument = res.locals.user;
+
+			const { ticketId } = req.params;
+			const { rating, comment } = req.body;
+
+			const ticket = await TicketsModel.findById(ticketId);
+
+			if (!ticket) {
+				throw new HttpException(404, SYSTEM_ERRORS.TICKET_NOT_FOUND);
+			}
+
+			if (ticket.customer.toString() !== user._id.toString()) {
+				throw new HttpException(403, SYSTEM_ERRORS.FORBIDDEN);
+			}
+
+			const barber = await BarbersModel.findById(ticket.barber._id.toString());
+
+			if (!barber) {
+				throw new HttpException(404, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
+
+			await ticket.updateOne({
+				rate: {
+					rating,
+					comment,
+				},
+			});
+			await barber.updateRating();
+
+			return res.status(200).json();
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
 }
 
 export default new TicketsRepository();

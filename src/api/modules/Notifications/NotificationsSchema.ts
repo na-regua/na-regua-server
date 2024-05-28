@@ -11,6 +11,7 @@ export type NotificationMessageType =
 	| "USER_REJECTED_APPOINTMENT_RESCHEDULE"
 	| "GENERATED_STATEMENT"
 	| "WORKER_ADD_USER_AS_CUSTOMER"
+	| "BARBER_IS_ON"
 	| "OTHERS";
 
 const NotificationMessageType: NotificationMessageType[] = [
@@ -24,6 +25,7 @@ const NotificationMessageType: NotificationMessageType[] = [
 	"USER_REJECTED_APPOINTMENT_RESCHEDULE",
 	"GENERATED_STATEMENT",
 	"WORKER_ADD_USER_AS_CUSTOMER",
+	"BARBER_IS_ON",
 	"OTHERS",
 ];
 

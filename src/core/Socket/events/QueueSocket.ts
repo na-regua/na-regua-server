@@ -33,12 +33,14 @@ export class QueueSocketEvents {
 	}
 
 	init(): void {
-		this.socket.on(SocketUrls.WorkerJoinQueue, () => this.workerJoinQueue());
 		this.socket.on(SocketUrls.UserJoinTicketChannels, (data) =>
 			this.userJoinTicketChannels(data)
 		);
 		this.socket.on(SocketUrls.UserLeaveTicketChannels, (data) =>
 			this.userLeaveQueueChannels(data)
+		);
+		this.socket.on(SocketUrls.WorkerJoinQueueChannels, () =>
+			this.workerJoinQueueChannels()
 		);
 
 		this.socket.on(SocketUrls.WorkerPauseQueue, () => this.workerPauseQueue());
@@ -80,48 +82,6 @@ export class QueueSocketEvents {
 		return { queue, worker };
 	}
 
-	// Worker join queue
-	private async workerJoinQueue() {
-		const getQueue = await this.getQueueDataByUserWorker();
-
-		if (!getQueue) {
-			return;
-		}
-
-		const { queue, worker } = getQueue;
-
-		// Check if worker isn't in queue
-		if (
-			!queue.workers.some(
-				(worker) => worker._id.toString() === worker._id.toString()
-			)
-		) {
-			// Join worker on queue
-			await queue.updateOne({
-				$push: { workers: worker._id },
-			});
-		}
-
-		// Emit events to room
-		await worker.populate("user");
-
-		this.globalIo.emitGlobalEvent(queue._id.toString(), "WORKER_JOINED_QUEUE", {
-			worker,
-		});
-
-		// Join queue room
-		await this.socket.join(queue._id.toString());
-		// Join barber room
-		await this.socket.join(worker.barber._id.toString());
-
-		// Emit queue data event to all workers
-		const updatedQueue = await QueueModel.findById(queue._id);
-
-		if (updatedQueue) {
-			await updatedQueue.populateAll();
-			this.globalIo.io.emit(SocketUrls.GetQueue, { queue: updatedQueue });
-		}
-	}
 	// User join queue channels
 	private async userJoinTicketChannels(data: any) {
 		const { ticketId } = data;
@@ -155,7 +115,20 @@ export class QueueSocketEvents {
 	// Worker join queue channels
 
 	// Worker left queue channels
-	private workerLeftQueueChannels() {}
+	private async workerJoinQueueChannels() {
+		const getQueue = await this.getQueueDataByUserWorker();
+
+		if (!getQueue) {
+			return;
+		}
+
+		const { queue, worker } = getQueue;
+
+		// Join queue room
+		await this.socket.join(queue._id.toString());
+		// Join barber room
+		await this.socket.join(worker.barber._id.toString());
+	}
 
 	// Worker leave queue
 	private workerLeaveQueue() {}
@@ -380,7 +353,7 @@ export class QueueSocketEvents {
 		});
 
 		// Emit queue data event to all workers
-		const updatedQueue = await QueueModel.findById(queue._id);
+		const updatedQueue = await QueueModel.findById(queue._id.toString());
 		if (updatedQueue) {
 			this.globalIo.io
 				.to(queue._id.toString())
@@ -407,9 +380,11 @@ export class QueueSocketEvents {
 		});
 
 		// Emit queue data event to all workers
-		const updatedQueue = await QueueModel.findById(queue._id);
-		this.globalIo.io
-			.to(queue._id.toString())
-			.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		const updatedQueue = await QueueModel.findById(queue._id.toString());
+		if (updatedQueue) {
+			this.globalIo.io
+				.to(queue._id.toString())
+				.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+		}
 	}
 }

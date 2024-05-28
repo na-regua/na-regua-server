@@ -7,6 +7,10 @@ import {
 	model,
 } from "mongoose";
 import { IBarberDocument, getDayToWorkDays } from "../Barbers";
+import { IQueueDocument } from "../Queue";
+import { IServiceDocument } from "../Services";
+import { IUserDocument } from "../Users";
+import { IWorkerDocument } from "../Workers";
 
 const QueueDataSchema = new Schema(
 	{
@@ -49,6 +53,21 @@ const ScheduleSchema = new Schema(
 	}
 );
 
+const RatingSchema = new Schema(
+	{
+		rating: {
+			type: Number,
+			required: true,
+			min: 0,
+			max: 5,
+		},
+		comment: {
+			type: String,
+		},
+	},
+	{ versionKey: false, _id: false, timestamps: true }
+);
+
 const TicketsSchema = new Schema(
 	{
 		customer: {
@@ -76,6 +95,10 @@ const TicketsSchema = new Schema(
 			ref: "Services",
 			required: true,
 		},
+		additional_services: {
+			type: [Schema.Types.ObjectId],
+			ref: "Services",
+		},
 		queue: {
 			type: QueueDataSchema,
 		},
@@ -90,6 +113,13 @@ const TicketsSchema = new Schema(
 		},
 		servedAt: Date,
 		missedAt: Date,
+		rate: {
+			type: RatingSchema,
+		},
+		is_paid: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	{
 		versionKey: false,
@@ -101,6 +131,22 @@ const TicketsSchema = new Schema(
 type TTicket = InferSchemaType<typeof TicketsSchema>;
 
 interface ITicketsDocument extends TTicket, Document {}
+
+interface ITicketsPopulated
+	extends Omit<
+		ITicketsDocument,
+		"customer" | "barber" | "queue" | "service" | "served_by" | "rating"
+	> {
+	customer: IUserDocument;
+	barber: IBarberDocument;
+	service: IServiceDocument;
+	queue: {
+		queue_dto: IQueueDocument;
+		position: number;
+		date: Date;
+	};
+	served_by: IWorkerDocument;
+}
 
 interface ITicketsMethods {
 	populateAll(): Promise<ITicketsDocument>;
@@ -245,4 +291,10 @@ const TicketsModel: ITicketsModel = model<ITicketsDocument, ITicketsModel>(
 	TicketsSchema
 );
 
-export { GetSchedulesFilters, ITicketsDocument, TTicket, TicketsModel };
+export {
+	GetSchedulesFilters,
+	ITicketsDocument,
+	ITicketsPopulated,
+	TTicket,
+	TicketsModel,
+};

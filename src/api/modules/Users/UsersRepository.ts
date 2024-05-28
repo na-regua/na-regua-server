@@ -6,6 +6,7 @@ import { Request, Response } from "express";
 import { IUserDocument, TUser, UsersModel } from ".";
 import { FilesModel, TUploadedFile } from "../Files";
 import { TwilioRepository } from "../Twilio";
+import { BarbersModel, TBarber } from "../Barbers";
 
 class UsersRepository {
 	async list(_: Request, res: Response): Promise<Response<TUser[]>> {
@@ -132,7 +133,7 @@ class UsersRepository {
 
 			const user: IUserDocument = res.locals.user;
 
-			const barber = await UsersModel.findById(barberId);
+			const barber = await BarbersModel.findById(barberId);
 
 			if (!barber) {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
@@ -151,6 +152,27 @@ class UsersRepository {
 			}
 
 			return res.status(204).json(null);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async listFavorites(
+		req: Request,
+		res: Response
+	): Promise<Response<TBarber[]>> {
+		try {
+			const user: IUserDocument = res.locals.user;
+
+			const barbers = await BarbersModel.find({ _id: { $in: user.favorites } });
+
+			await Promise.all(
+				barbers.map(async (barber) => {
+					await barber.populateAll();
+				})
+			);
+
+			return res.status(200).json(barbers);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

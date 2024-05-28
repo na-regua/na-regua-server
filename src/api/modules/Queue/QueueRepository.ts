@@ -4,15 +4,15 @@ import {
 	SocketUrls,
 	errorHandler,
 } from "@core/index";
+import { getTodayAndNextTo } from "@utils/index";
+import { GlobalSocket } from "app";
 import { Request, Response } from "express";
 import { BarbersModel, IBarberDocument } from "../Barbers";
-import { IUserDocument } from "../Users";
-import { QueueModel } from "./QueueSchema";
-import { getTodayAndNextTo } from "@utils/index";
-import { ITicketsDocument, TicketsModel } from "../Tickets";
 import { ServicesModel } from "../Services";
-import { GlobalSocket } from "app";
+import { ITicketsDocument, TicketsModel } from "../Tickets";
+import { IUserDocument } from "../Users";
 import { IWorkerDocument } from "../Workers";
+import { QueueModel } from "./QueueSchema";
 
 class QueueRepository {
 	async index(req: Request, res: Response) {
@@ -49,6 +49,11 @@ class QueueRepository {
 			const newQueue = await QueueModel.create({
 				barber: barber._id,
 				workers: [worker._id],
+			});
+
+			// Update barber live info
+			await BarbersModel.updateLiveInfo(barber._id.toString(), {
+				queue: newQueue,
 			});
 
 			return res.status(201).json({ queue: newQueue });
@@ -198,6 +203,11 @@ class QueueRepository {
 
 			await ticket.populateAll();
 
+			// Update barber live info
+			await BarbersModel.updateLiveInfo(barber._id.toString(), {
+				queue: updatedQueue,
+			});
+
 			return res.status(200).json({ ticket });
 		} catch (error) {
 			return errorHandler(error, res);
@@ -218,9 +228,7 @@ class QueueRepository {
 
 			// Check if worker isn't in queue
 			if (
-				!queue.workers.some(
-					(worker) => worker._id.toString() === worker._id.toString()
-				)
+				!queue.workers.some((w) => w._id.toString() === worker._id.toString())
 			) {
 				await queue.updateOne({
 					$push: { workers: worker._id },
@@ -230,6 +238,7 @@ class QueueRepository {
 			await queue.populateAll();
 			await worker.populate("user");
 
+			// emit events to other queue users
 			GlobalSocket.emitGlobalEvent(
 				queue._id.toString(),
 				"WORKER_JOINED_QUEUE",
@@ -238,7 +247,14 @@ class QueueRepository {
 				}
 			);
 
-			return res.json({ queue });
+			const updatedQueue = await QueueModel.findById(queue._id);
+
+			// emit updated queue data to other workers
+			GlobalSocket.io
+				.to(queue._id.toString())
+				.emit(SocketUrls.GetQueue, { queue: updatedQueue });
+
+			return res.json({ queue: updatedQueue });
 		} catch (error) {
 			return errorHandler(error, res);
 		}

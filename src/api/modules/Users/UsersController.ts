@@ -11,6 +11,11 @@ export class UsersController extends BaseController {
 
 	defineRoutes(): void {
 		this.router.get(ENDPOINTS.USERS_LIST, UsersRepository.list);
+		this.router.get(
+			ENDPOINTS.USERS_LIST_FAVORITES,
+			AuthRepository.isAuthenticated,
+			UsersRepository.listFavorites
+		);
 
 		this.router.post(
 			ENDPOINTS.USERS_CREATE,

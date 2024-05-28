@@ -142,11 +142,6 @@ class CustomerServicesRepository {
 
 			// Emit socket
 			if (GlobalSocket.io) {
-				console.log(
-					"Emitting notification to worker",
-					worker.user._id.toString()
-				);
-
 				GlobalSocket.io
 					.to(worker.user._id.toString())
 					.emit(SocketUrls.NewNotification, { notification });
@@ -191,11 +186,6 @@ class CustomerServicesRepository {
 
 			// Emit socket
 			if (GlobalSocket.io) {
-				console.log(
-					"Emitting notification to worker",
-					worker.user._id.toString()
-				);
-
 				GlobalSocket.io
 					.to(worker.user._id.toString())
 					.emit(SocketUrls.NewNotification, { notification });

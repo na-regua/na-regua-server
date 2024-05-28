@@ -20,5 +20,11 @@ export class TicketsController extends BaseController {
 			AuthRepository.isAuthenticated,
 			TicketsRepository.create
 		);
+
+		this.router.put(
+			ENDPOINTS.TICKETS_RATE,
+			AuthRepository.isAuthenticated,
+			TicketsRepository.rate
+		);
 	}
 }
