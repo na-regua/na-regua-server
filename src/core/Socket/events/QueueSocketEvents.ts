@@ -1,14 +1,11 @@
 import {
-	BarbersModel,
 	IQueueDocument,
 	IUserDocument,
 	IWorkerDocument,
-	NotificationMessageType,
 	QueueModel,
 	TicketsModel,
 	WorkersModel,
 } from "@api/modules";
-import NotificationsRepository from "@api/modules/Notifications/NotificationsRepository";
 import { Socket } from "socket.io";
 import { GlobalSocket } from "../../../app";
 import { SocketUrls } from "../SocketModel";
