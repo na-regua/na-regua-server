@@ -5,10 +5,10 @@ import { SYSTEM_ERRORS } from "@core/index";
 import { Request, Response } from "express";
 import { IBarberDocument } from "../Barbers";
 import { IUserDocument } from "../Users";
-import { FilesModel, IFileDocument, TFile, TUploadedFile } from "./FilesSchema";
+import { FilesModel, TFile, TUploadedFile } from "./FilesSchema";
 
 class FilesRepository {
-	async updateUserAvatar(req: Request, res: Response) {
+	async update_user_avatar(req: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 			const { avatarId } = req.params;
@@ -51,7 +51,7 @@ class FilesRepository {
 		}
 	}
 
-	async updateBarberAvatar(req: Request, res: Response) {
+	async update_barber_avatar(req: Request, res: Response) {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 
@@ -95,7 +95,7 @@ class FilesRepository {
 		}
 	}
 
-	async updateBarberThumb(req: Request, res: Response) {
+	async update_barber_thumb(req: Request, res: Response) {
 		try {
 			const barber = res.locals.barber as IBarberDocument;
 			const file = req.file as TUploadedFile;
@@ -159,7 +159,7 @@ class FilesRepository {
 		}
 	}
 
-	async uploadBarberThumbs(req: Request, res: Response) {
+	async upload_barber_thumbs(req: Request, res: Response) {
 		try {
 			const files = req.files as TUploadedFile[];
 			const barber = res.locals.barber as IBarberDocument;
@@ -171,20 +171,20 @@ class FilesRepository {
 			// Create new files
 			await Promise.all(
 				files.map(async (file) => {
-					const newThumb = await FilesModel.create({
+					const new_thumb = await FilesModel.create({
 						original_name: file.originalname,
 						filename: file.filename,
 						url: file.path,
 						mimetype: file.mimetype,
 					});
 
-					if (!newThumb) {
+					if (!new_thumb) {
 						throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_CREATED);
 					}
 
 					await barber.updateOne({
 						$push: {
-							thumbs: newThumb._id,
+							thumbs: new_thumb._id,
 						},
 					});
 				})
@@ -196,15 +196,15 @@ class FilesRepository {
 		}
 	}
 
-	async deleteBarberThumb(req: Request, res: Response) {
+	async delete_barber_thumb(req: Request, res: Response) {
 		try {
-			const thumbId = req.params.thumbId;
+			const thumb_id = req.params.thumbId;
 			const barber = res.locals.barber as IBarberDocument;
-			if (!thumbId) {
+			if (!thumb_id) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
 			}
 
-			const thumb = await FilesModel.findById(thumbId);
+			const thumb = await FilesModel.findById(thumb_id);
 
 			if (!thumb) {
 				throw new HttpException(400, SYSTEM_ERRORS.FILE_NOT_FOUND);
@@ -214,45 +214,11 @@ class FilesRepository {
 			await thumb.deleteOne();
 			await barber.updateOne({
 				$pull: {
-					thumbs: thumbId,
+					thumbs: thumb_id,
 				},
 			});
 
 			return res.status(200).json(null);
-		} catch (error) {
-			return errorHandler(error, res);
-		}
-	}
-
-	async uploadFileToStorage(
-		req: Request,
-		res: Response
-	): Promise<Response<null>> {
-		try {
-			const uploadResult = await handleMultipleUploadFile(req, res);
-
-			const uploadedFiles: TUploadedFile[] = uploadResult.files;
-
-			const createdFiles: TFile[] = [];
-
-			const createFilesPromise = new Promise<void>((resolve) => {
-				uploadedFiles.map(async (uploadedFile) => {
-					const createdFile = await FilesModel.create({
-						filename: uploadedFile.filename,
-						url: `uploads/${uploadedFile.filename}`,
-					});
-
-					createdFiles.push(createdFile);
-
-					if (createdFiles.length === uploadedFiles.length) {
-						resolve();
-					}
-				});
-			});
-
-			await createFilesPromise;
-
-			return res.status(200).json(createdFiles);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

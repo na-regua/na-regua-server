@@ -1,7 +1,7 @@
 export function diacriticSensitiveRegex(string = '') {
 	return string
-		 .replace(/a/g, '[a,á,à,ä,â]')
-		 .replace(/A/g, '[A,a,á,à,ä,â]')
+		 .replace(/a/g, '[a,á,à,ä,â,ã]')
+		 .replace(/A/g, '[A,A,À,Á,Ã,ä,â]')
 		 .replace(/e/g, '[e,é,ë,è]')
 		 .replace(/E/g, '[E,e,é,ë,è]')
 		 .replace(/i/g, '[i,í,ï,ì]')

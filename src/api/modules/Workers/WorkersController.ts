@@ -12,30 +12,30 @@ export class WorkersController extends BaseController {
 		this.router.get(
 			ENDPOINTS.WORKERS_LIST,
 			[],
-			AuthRepository.isAuthenticated,
+			AuthRepository.is_authenticated,
 			WorkersRepository.index
 		);
 
 		this.router.post(
 			ENDPOINTS.WORKERS_CREATE,
 			cloudinaryStorage.single("file"),
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			WorkersRepository.create
 		);
 
 		this.router.put(
 			ENDPOINTS.WORKERS_UPDATE,
 			cloudinaryStorage.single("file"),
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			WorkersRepository.update
 		);
 
 		this.router.delete(
 			ENDPOINTS.WORKERS_DELETE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			WorkersRepository.delete
 		);
 	}

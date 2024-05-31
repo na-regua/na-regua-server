@@ -261,6 +261,7 @@ TicketsSchema.methods.populateAll = async function () {
 		},
 	});
 	await this.populate("service");
+	await this.populate("additional_services");
 	await this.populate("queue.queue_dto");
 	await this.populate("served_by");
 

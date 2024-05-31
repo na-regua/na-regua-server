@@ -1,1 +1,2 @@
-export * from "./QueueSocket";
+export * from "./QueueSocketEvents";
+export * from "./GeneralSocketEvents";

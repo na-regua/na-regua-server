@@ -10,20 +10,20 @@ class NotificationController extends BaseController {
 	defineRoutes(): void {
 		this.router.get(
 			ENDPOINTS.NOTIFICATION_LIST_BY_USER,
-			AuthRepository.isAuthenticated,
+			AuthRepository.is_authenticated,
 			NotificationsRepository.index
 		);
 
 		this.router.put(
 			ENDPOINTS.NOTIFICATION_MARK_ALL_AS_VIEWED,
-			AuthRepository.isAuthenticated,
-			NotificationsRepository.markAllAsViewed
+			AuthRepository.is_authenticated,
+			NotificationsRepository.mark_all_as_viewed
 		);
 
 		this.router.put(
 			ENDPOINTS.NOTIFICATION_MARK_AS_VIEWED,
-			AuthRepository.isAuthenticated,
-			NotificationsRepository.markAsViewed
+			AuthRepository.is_authenticated,
+			NotificationsRepository.mark_as_viewed
 		);
 	}
 }

@@ -38,7 +38,7 @@ class TicketsRepository {
 		try {
 			const user: IUserDocument = res.locals.user;
 
-			const { today, nextDay } = getTodayAndNextTo(1);
+			const { today, next_day } = getTodayAndNextTo(1);
 
 			const queueTicket = await TicketsModel.findOne({
 				customer: user._id,
@@ -48,7 +48,7 @@ class TicketsRepository {
 				},
 				"queue.date": {
 					$gte: today,
-					$lt: nextDay,
+					$lt: next_day,
 				},
 			});
 
@@ -60,7 +60,7 @@ class TicketsRepository {
 				},
 				"schedule.date": {
 					$gte: today,
-					$lt: nextDay,
+					$lt: next_day,
 				},
 			});
 

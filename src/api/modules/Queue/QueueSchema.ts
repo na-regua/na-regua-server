@@ -145,13 +145,13 @@ QueueSchema.statics.findBarberTodayQueue = async function (
 	otherParams?: FilterQuery<IQueueDocument>
 ): Promise<IQueueDocument | null> {
 	const model: IQueueModel = this as IQueueModel;
-	const { nextDay, today } = getTodayAndNextTo(1);
+	const { next_day, today } = getTodayAndNextTo(1);
 
 	const params: FilterQuery<IQueueDocument> = {
 		status: { $in: ["on", "paused"] },
 		createdAt: {
 			$gte: today,
-			$lt: nextDay,
+			$lt: next_day,
 		},
 		...otherParams,
 	};

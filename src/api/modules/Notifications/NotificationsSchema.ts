@@ -12,6 +12,7 @@ export type NotificationMessageType =
 	| "GENERATED_STATEMENT"
 	| "WORKER_ADD_USER_AS_CUSTOMER"
 	| "BARBER_IS_ON"
+	| "BARBER_QUEUE_IS_ON"
 	| "OTHERS";
 
 const NotificationMessageType: NotificationMessageType[] = [

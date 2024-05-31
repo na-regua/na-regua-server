@@ -47,14 +47,14 @@ const UsersSchema = new mongoose.Schema(
 			enum: ["admin", "worker", "customer"],
 			default: "customer",
 		},
-		worker: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: "Workers",
-		},
 		access_token: String,
 		verified: {
 			type: Boolean,
 			default: false,
+		},
+		worker: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: "Workers",
 		},
 		favorites: {
 			type: [mongoose.Schema.Types.ObjectId],
@@ -132,32 +132,28 @@ UsersSchema.statics.findByPhone = async function (
 UsersSchema.statics.findByToken = async function (
 	token: string
 ): Promise<IUserDocument | HttpException> {
+	const UsersModel = this;
+	let decoded: any;
+
 	try {
-		const UsersModel = this;
-		let decoded: any;
-
 		decoded = verify(token, TOKEN_SECRET);
-
-		if (!decoded) {
-			return new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
-		}
-
-		const user = await UsersModel.findOne({
-			_id: decoded._id,
-		});
-
-		if (!user) {
-			return new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
-		}
-
-		if (user.access_token !== token) {
-			return new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
-		}
-
-		return user;
-	} catch (err) {
-		return err as HttpException;
+	} catch {
+		return new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
 	}
+
+	const user = await UsersModel.findOne({
+		_id: decoded._id,
+	});
+
+	if (!user) {
+		return new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+	}
+
+	if (user.access_token !== token) {
+		return new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
+	}
+
+	return user;
 };
 
 UsersSchema.methods.verifyPhone = async function (code: string): Promise<void> {

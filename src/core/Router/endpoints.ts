@@ -50,12 +50,11 @@ export enum ENDPOINTS {
 	QUEUE_GET_TODAY = "/queues/today",
 	QUEUE_BARBER_TODAY = "/queues/:barberId/today",
 	QUEUE_LAST_POSITION = "/queues/:queueId/last-position",
-	QUEUE_JOIN_USER = "/queues/join/user",
-	QUEUE_JOIN_WORKER = "/queues/join/worker",
-
-	/**
-	 * QueueTickts
-	 * */
+	QUEUE_USER_JOIN = "/queues/join/user",
+	QUEUE_WORKER_JOIN = "/queues/join/worker",
+	QUEUE_WORKER_APPROVE_TICKET = "/queues/worker/approve/:ticketId",
+	QUEUE_USER_LEAVE = "/queues/leave/:ticketId",
+	QUEUE_WORKER_REJECT_TICKET = "/queues/worker/reject/:ticketId",
 
 	/**
 	 * Schedules
@@ -82,7 +81,6 @@ export enum ENDPOINTS {
 	USERS_DELETE = "/users/:id",
 	USERS_IS_ON_QUEUE = "/users/is-on/queue",
 	USERS_FAVORITE_BARBER = "/users/favorite/:barberId",
-
 
 	/**
 	 * Workers

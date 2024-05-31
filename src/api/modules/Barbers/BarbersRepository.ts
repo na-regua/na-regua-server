@@ -14,24 +14,24 @@ class BarbersRepository {
 		try {
 			const { search } = req.query;
 
-			let filterQuery: FilterQuery<IBarberDocument> = {};
+			let filter_query: FilterQuery<IBarberDocument> = {};
 
 			if (search) {
-				const cleanedSearch = diacriticSensitiveRegex(
+				const cleaned_search = diacriticSensitiveRegex(
 					(search as string).toLocaleLowerCase()
 				);
 
 				if (search && typeof search === "string") {
-					filterQuery = {
+					filter_query = {
 						$or: [
-							{ name: { $regex: new RegExp("^" + cleanedSearch, "i") } },
-							{ code: { $regex: new RegExp("^" + cleanedSearch, "i") } },
+							{ name: { $regex: new RegExp("^" + cleaned_search, "i") } },
+							{ code: { $regex: new RegExp("^" + cleaned_search, "i") } },
 						],
 					};
 				}
 			}
 
-			const barbers = await BarbersModel.find(filterQuery);
+			const barbers = await BarbersModel.find(filter_query);
 
 			await Promise.all(
 				barbers.map(async (barber) => {
@@ -46,7 +46,7 @@ class BarbersRepository {
 		}
 	}
 
-	async byToken(_: Request, res: Response): Promise<Response<TBarber>> {
+	async find_by_token(_: Request, res: Response): Promise<Response<TBarber>> {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 
@@ -86,7 +86,7 @@ class BarbersRepository {
 
 			await barber.updateOne(body);
 
-			await BarbersModel.updateLiveInfo(barber._id.toString());
+			await BarbersModel.updateLiveInfo(barber._id.toString(), {});
 
 			return res.status(204).json(null);
 		} catch (error) {
@@ -138,7 +138,7 @@ class BarbersRepository {
 		}
 	}
 
-	async completeProfile(req: Request, res: Response): Promise<Response<null>> {
+	async complete_profile(req: Request, res: Response): Promise<Response<null>> {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 
@@ -152,7 +152,7 @@ class BarbersRepository {
 		}
 	}
 
-	async signUp(
+	async create(
 		req: Request,
 		res: Response
 	): Promise<Response<{ barber: TBarber; user: TUser }>> {
@@ -160,12 +160,12 @@ class BarbersRepository {
 			const { password, address, phone, ...body } = req.body;
 			const files = req.files as TUploadedFile[];
 
-			res.locals.cloudFiles = files;
+			res.locals.cloud_files = files;
 
-			const createdFiles = [];
-			const createdFilesSchema = [];
+			const new_files = [];
+			const new_files_schema = [];
 			/*
-			 * Uploaded files to cloud service and create Files Scchema
+			 * Uploaded files to cloud service and create Files Schema
 			 **/
 			for (const thumb of files) {
 				const file = await FilesModel.create({
@@ -175,25 +175,25 @@ class BarbersRepository {
 					mimetype: thumb.mimetype,
 				});
 
-				createdFiles.push(file._id);
-				createdFilesSchema.push(file);
+				new_files.push(file._id);
+				new_files_schema.push(file);
 
-				res.locals.files = createdFilesSchema;
+				res.locals.files = new_files_schema;
 			}
 
 			/*
 			 * Map avatar schema and thumb schema, all files via endpoint are the same, so the first should be the avatar file
 			 **/
-			const [avatar, ...thumbs] = createdFiles.map((file) => file._id);
-			const parsedAddress = JSON.parse(address);
-			const numPhone = +phone;
+			const [avatar, ...thumbs] = new_files.map((file) => file._id);
+			const parsed_address = JSON.parse(address);
+			const num_phone = +phone;
 
-			const barber = await BarbersModel.create({
+			let barber = await BarbersModel.create({
 				code: generateRandomCode(),
 				thumbs,
 				avatar,
-				address: parsedAddress,
-				phone: numPhone,
+				address: parsed_address,
+				phone: num_phone,
 				...body,
 			});
 
@@ -210,7 +210,7 @@ class BarbersRepository {
 			/*
 			 * Create the admin user for the barber login
 			 **/
-			const adminUser = await UsersModel.create({
+			const admin_user = await UsersModel.create({
 				name: barber.name,
 				email: barber.email,
 				phone: barber.phone,
@@ -219,40 +219,36 @@ class BarbersRepository {
 				avatar,
 			});
 
-			if (!adminUser) {
+			if (!admin_user) {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_CREATED);
 			}
 
-			res.locals.user = adminUser;
+			res.locals.user = admin_user;
 
 			/*
 			 * Create the admin worker for the registry
 			 **/
-			const adminWorker = await WorkersModel.create({
-				user: adminUser._id,
+			const admin_worker = await WorkersModel.create({
+				user: admin_user._id,
 				barber: barber._id,
 			});
 
-			if (!adminWorker) {
+			if (!admin_worker) {
 				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_CREATED);
 			}
 
-			await adminUser.updateOne({
-				worker: adminWorker._id,
+			res.locals.worker = admin_worker;
+
+			const access_token = await admin_user.generateAuthToken();
+
+			const updated_user = await UsersModel.findByIdAndUpdate(admin_user._id, {
+				worker: admin_worker._id,
 			});
 
-			res.locals.worker = adminWorker;
-
-			const access_token = await adminUser.generateAuthToken();
-
-			const updatedBarber = await BarbersModel.findByIdAndUpdate(barber._id);
-
-			return res
-				.status(201)
-				.json({ barber: updatedBarber, user: adminUser, access_token });
+			return res.status(201).json({ barber, user: updated_user, access_token });
 		} catch (error) {
 			const { barber, user, worker } = res.locals;
-			const cloudFiles = res.locals.cloudFiles as TUploadedFile[];
+			const cloud_files = res.locals.cloud_files as TUploadedFile[];
 
 			const files = res.locals.files as IFileDocument[];
 
@@ -275,8 +271,8 @@ class BarbersRepository {
 				});
 			}
 
-			if (cloudFiles) {
-				cloudFiles.forEach(async (file) => {
+			if (cloud_files) {
+				cloud_files.forEach(async (file) => {
 					await cloudinaryDestroy(file.filename);
 				});
 			}
@@ -285,7 +281,7 @@ class BarbersRepository {
 		}
 	}
 
-	async setIsOpen(req: Request, res: Response): Promise<Response<null>> {
+	async set_is_open(req: Request, res: Response): Promise<Response<null>> {
 		try {
 			const { open } = req.body;
 			const barber: IBarberDocument = res.locals.barber;
@@ -298,7 +294,11 @@ class BarbersRepository {
 				open,
 			});
 
-			await BarbersModel.updateLiveInfo(barber._id.toString());
+			await BarbersModel.updateLiveInfo(
+				barber._id.toString(),
+				{},
+				"BARBER_IS_ON"
+			);
 
 			return res.status(204).json(null);
 		} catch (error) {
@@ -306,7 +306,10 @@ class BarbersRepository {
 		}
 	}
 
-	async listCustomers(req: Request, res: Response): Promise<Response<TUser>> {
+	async list_barber_customers(
+		req: Request,
+		res: Response
+	): Promise<Response<TUser>> {
 		try {
 			const barber: IBarberDocument = res.locals.barber;
 

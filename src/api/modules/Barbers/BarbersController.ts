@@ -12,50 +12,50 @@ export class BarbersController extends BaseController {
 		this.router.get(ENDPOINTS.BARBERS_LIST, BarbersRepository.list);
 		this.router.get(
 			ENDPOINTS.BARBERS_CUSTOMERS,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			BarbersRepository.listCustomers
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			BarbersRepository.list_barber_customers
 		);
 
 		this.router.get(
 			ENDPOINTS.BARBERS_BY_TOKEN,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			BarbersRepository.byToken
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			BarbersRepository.find_by_token
 		);
 
 		this.router.put(
 			ENDPOINTS.BARBERS_UPDATE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			BarbersRepository.update
 		);
 
 		this.router.post(
 			ENDPOINTS.BARBERS_SIGN_UP,
 			cloudinaryStorage.array("files"),
-			BarbersRepository.signUp
+			BarbersRepository.create
 		);
 
 		this.router.delete(
 			ENDPOINTS.BARBERS_DELETE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			BarbersRepository.delete
 		);
 
 		this.router.post(
 			ENDPOINTS.BARBERS_COMPLETE_PROFILE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			BarbersRepository.completeProfile
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			BarbersRepository.complete_profile
 		);
 
 		this.router.put(
 			ENDPOINTS.BARBERS_OPEN,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			BarbersRepository.setIsOpen
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			BarbersRepository.set_is_open
 		);
 	}
 }

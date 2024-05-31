@@ -13,7 +13,7 @@ export class UsersController extends BaseController {
 		this.router.get(ENDPOINTS.USERS_LIST, UsersRepository.list);
 		this.router.get(
 			ENDPOINTS.USERS_LIST_FAVORITES,
-			AuthRepository.isAuthenticated,
+			AuthRepository.is_authenticated,
 			UsersRepository.listFavorites
 		);
 
@@ -25,7 +25,7 @@ export class UsersController extends BaseController {
 
 		this.router.put(
 			ENDPOINTS.USERS_UPDATE,
-			AuthRepository.isAuthenticated,
+			AuthRepository.is_authenticated,
 			UsersRepository.update
 		);
 
@@ -40,7 +40,7 @@ export class UsersController extends BaseController {
 
 		this.router.put(
 			ENDPOINTS.USERS_FAVORITE_BARBER,
-			AuthRepository.isAuthenticated,
+			AuthRepository.is_authenticated,
 			UsersRepository.favoriteBarber
 		);
 

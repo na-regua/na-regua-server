@@ -1,1 +1,0 @@
-'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.generateRandomCode=void 0;function generateRandomCode(){return Math.floor(Math.random()*167772151212).toString(16).toLocaleUpperCase();}exports.generateRandomCode=generateRandomCode;

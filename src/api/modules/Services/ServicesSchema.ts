@@ -12,7 +12,6 @@ const ServicesSchema = new Schema(
 		name: {
 			type: String,
 			required: true,
-			unique: true,
 			minLength: 3,
 		},
 		price: {
@@ -59,5 +58,4 @@ const ServicesModel: IServicesModel = model<IServiceDocument, IServicesModel>(
 
 export { IServicesModel, ServicesModel };
 
-	export { IServiceDocument, ServicesSchema, TService };
-
+export { IServiceDocument, ServicesSchema, TService };

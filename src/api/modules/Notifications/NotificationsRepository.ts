@@ -71,7 +71,7 @@ class CustomerServicesRepository {
 		}
 	}
 
-	async markAsViewed(req: Request, res: Response) {
+	async mark_as_viewed(req: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 			const { notificationId } = req.params;
@@ -93,7 +93,7 @@ class CustomerServicesRepository {
 		}
 	}
 
-	async markAllAsViewed(_: Request, res: Response) {
+	async mark_all_as_viewed(_: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 
@@ -113,7 +113,7 @@ class CustomerServicesRepository {
 		}
 	}
 
-	async notifyBarberWorkers(
+	async notify_barber_workers(
 		barberId: string,
 		message: NotificationMessageType,
 		data?: any,
@@ -149,7 +149,7 @@ class CustomerServicesRepository {
 		});
 	}
 
-	async notifyQueueWorkers(
+	async notify_queue_workers(
 		queueId: string,
 		message: NotificationMessageType,
 		data?: any,
@@ -193,14 +193,14 @@ class CustomerServicesRepository {
 		});
 	}
 
-	async notifyUser(
-		userId: string,
+	async notify_user(
+		user_id: string,
 		message: NotificationMessageType,
 		data?: any,
 		icon?: string
 	) {
 		// Notify barber workers
-		const user = await UsersModel.findById(userId);
+		const user = await UsersModel.findById(user_id);
 		if (!user) {
 			return;
 		}

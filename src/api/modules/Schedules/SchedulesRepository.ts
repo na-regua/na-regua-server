@@ -114,7 +114,7 @@ export class SchedulesRepository {
 				? "CUSTOMER_SCHEDULED_APPOINTMENT"
 				: "USER_ASK_TO_SCHEDULE";
 
-			await NotificationsRepository.notifyBarberWorkers(
+			await NotificationsRepository.notify_barber_workers(
 				barberId,
 				messageType,
 				{

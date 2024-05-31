@@ -3,12 +3,12 @@ export function getTodayAndNextTo(
 	todayDate?: Date
 ): {
 	today: Date;
-	nextDay: Date;
+	next_day: Date;
 } {
 	const today = todayDate || new Date();
 	today.setHours(0, 0, 0, 0);
-	const nextDay = new Date(today);
-	nextDay.setDate(today.getDate() + addDays);
+	const next_day = new Date(today);
+	next_day.setDate(today.getDate() + addDays);
 
-	return { today, nextDay };
+	return { today, next_day };
 }

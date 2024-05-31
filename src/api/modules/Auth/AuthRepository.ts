@@ -6,7 +6,7 @@ import { IUserDocument, TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
 
 class AuthRepository {
-	async loginWithEmail(req: Request, res: Response) {
+	async login_with_email(req: Request, res: Response) {
 		try {
 			const { email, password } = req.body;
 
@@ -47,7 +47,7 @@ class AuthRepository {
 		}
 	}
 
-	async sendOTPCode(req: Request, res: Response) {
+	async send_otp_code(req: Request, res: Response) {
 		try {
 			const { phone } = req.body;
 
@@ -65,7 +65,7 @@ class AuthRepository {
 		}
 	}
 
-	async verifyOTPCode(req: Request, res: Response) {
+	async verify_otp_code(req: Request, res: Response) {
 		try {
 			const { code, phone } = req.body;
 
@@ -114,7 +114,7 @@ class AuthRepository {
 		}
 	}
 
-	async isAuthenticated(req: Request, res: Response, next: NextFunction) {
+	async is_authenticated(req: Request, res: Response, next: NextFunction) {
 		try {
 			let token = req.headers.authorization;
 
@@ -127,10 +127,8 @@ class AuthRepository {
 			const user = await UsersModel.findByToken(token);
 
 			if (user instanceof HttpException) {
-				throw user;
+				throw new HttpException(401, SYSTEM_ERRORS.UNAUTHORIZED);
 			}
-
-			await user.populate("avatar");
 
 			if (!user) {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
@@ -144,7 +142,7 @@ class AuthRepository {
 		}
 	}
 
-	async isAdmin(_: Request, res: Response, next: NextFunction) {
+	async is_admin(_: Request, res: Response, next: NextFunction) {
 		try {
 			const { user } = res.locals;
 
@@ -172,7 +170,7 @@ class AuthRepository {
 		}
 	}
 
-	async workForBarber(_: Request, res: Response, next: NextFunction) {
+	async is_barber_worker(_: Request, res: Response, next: NextFunction) {
 		const { user } = res.locals;
 
 		const worker = await WorkersModel.findOne({ user: user._id });
@@ -193,7 +191,7 @@ class AuthRepository {
 		next();
 	}
 
-	async getCurrentUser(_: Request, res: Response) {
+	async get_current_user(_: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 			const response: { user: TUser; barber?: TBarber } = {

@@ -11,26 +11,26 @@ class ServicesController extends BaseController {
 	defineRoutes(): void {
 		this.router.get(
 			ENDPOINTS.SERVICES_LIST,
-			AuthRepository.isAuthenticated,
+			AuthRepository.is_authenticated,
 			ServicesRepository.index
 		);
 
 		this.router.put(
 			ENDPOINTS.SERVICES_UPDATE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			ServicesRepository.update
 		);
 		this.router.post(
 			ENDPOINTS.SERVICES_CREATE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			ServicesRepository.create
 		);
 		this.router.delete(
 			ENDPOINTS.SERVICES_DELETE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
 			ServicesRepository.delete
 		);
 	}

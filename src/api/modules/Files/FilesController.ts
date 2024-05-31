@@ -9,47 +9,42 @@ export class FilesController extends BaseController {
 	}
 
 	defineRoutes(): void {
-		this.router.post(
-			ENDPOINTS.FILES_CREATE,
-			FilesRepository.uploadFileToStorage
-		);
-
 		this.router.put(
 			ENDPOINTS.FILES_UPDATE_USER_AVATAR,
 			cloudinaryStorage.single("file"),
-			AuthRepository.isAuthenticated,
-			FilesRepository.updateUserAvatar
+			AuthRepository.is_authenticated,
+			FilesRepository.update_user_avatar
 		);
 
 		this.router.put(
 			ENDPOINTS.FILES_UPDATE_BARBER_AVATAR,
 			cloudinaryStorage.single("file"),
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			FilesRepository.updateBarberAvatar
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			FilesRepository.update_barber_avatar
 		);
 
 		this.router.put(
 			ENDPOINTS.FILES_UPDATE_BARBER_THUMB,
 			cloudinaryStorage.single("file"),
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			FilesRepository.updateBarberThumb
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			FilesRepository.update_barber_thumb
 		);
 
 		this.router.post(
 			ENDPOINTS.FILES_UPLOAD_BARBER_THUMBS,
 			cloudinaryStorage.array("files", 3),
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			FilesRepository.uploadBarberThumbs
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			FilesRepository.upload_barber_thumbs
 		);
 
 		this.router.delete(
 			ENDPOINTS.FILES_DELETE_BARBER_THUMBS,
-			AuthRepository.isAuthenticated,
-			AuthRepository.isAdmin,
-			FilesRepository.deleteBarberThumb
+			AuthRepository.is_authenticated,
+			AuthRepository.is_admin,
+			FilesRepository.delete_barber_thumb
 		);
 	}
 }

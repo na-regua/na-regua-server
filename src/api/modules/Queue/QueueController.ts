@@ -1,7 +1,6 @@
-import { BaseController, ENDPOINTS, errorHandler } from "@core/index";
+import { BaseController, ENDPOINTS } from "@core/index";
 import { AuthRepository } from "../Auth";
 import QueueRepository from "./QueueRepository";
-import { QueueModel } from "./QueueSchema";
 
 class QueueController extends BaseController {
 	constructor() {
@@ -12,35 +11,55 @@ class QueueController extends BaseController {
 		this.router.get(ENDPOINTS.QUEUE_LIST, QueueRepository.index);
 		this.router.get(
 			ENDPOINTS.QUEUE_GET_TODAY,
-			AuthRepository.isAuthenticated,
-			AuthRepository.workForBarber,
-			QueueRepository.getTodayQueue
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
+			QueueRepository.get_today_queue
 		);
 
 		this.router.get(
 			ENDPOINTS.QUEUE_BARBER_TODAY,
-			AuthRepository.isAuthenticated,
-			QueueRepository.getBarberTodayQueue
+			AuthRepository.is_authenticated,
+			QueueRepository.get_today_queue_by_barber_id
 		);
 
 		this.router.post(
 			ENDPOINTS.QUEUE_CREATE,
-			AuthRepository.isAuthenticated,
-			AuthRepository.workForBarber,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
 			QueueRepository.create
 		);
 
 		this.router.post(
-			ENDPOINTS.QUEUE_JOIN_USER,
-			AuthRepository.isAuthenticated,
-			QueueRepository.userJoinQueue
+			ENDPOINTS.QUEUE_USER_JOIN,
+			AuthRepository.is_authenticated,
+			QueueRepository.user_join_queue
 		);
 
 		this.router.post(
-			ENDPOINTS.QUEUE_JOIN_WORKER,
-			AuthRepository.isAuthenticated,
-			AuthRepository.workForBarber,
-			QueueRepository.workerJoinQueue
+			ENDPOINTS.QUEUE_WORKER_JOIN,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
+			QueueRepository.worker_join_queue
+		);
+
+		this.router.put(
+			ENDPOINTS.QUEUE_WORKER_APPROVE_TICKET,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
+			QueueRepository.worker_approve_ticket
+		);
+
+		this.router.put(
+			ENDPOINTS.QUEUE_WORKER_REJECT_TICKET,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
+			QueueRepository.worker_reject_ticket
+		);
+
+		this.router.post(
+			ENDPOINTS.QUEUE_USER_LEAVE,
+			AuthRepository.is_authenticated,
+			QueueRepository.user_leave_queue
 		);
 	}
 }

@@ -175,7 +175,11 @@ interface IBarberMethods {}
 
 interface IBarbersModel extends Model<IBarberDocument, IBarberMethods> {
 	populateAll(): Promise<IBarbersModel>;
-	updateLiveInfo(barber_id: string, data?: Object): Promise<IBarberDocument>;
+	updateLiveInfo(
+		barber_id: string,
+		data?: Object,
+		notify?: NotificationMessageType
+	): Promise<IBarberDocument>;
 }
 
 BarbersSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
@@ -204,6 +208,10 @@ BarbersSchema.methods.updateRating = async function (): Promise<void> {
 		rate: { $ne: null },
 	});
 
+	if (ratings.length === 0) {
+		return;
+	}
+
 	const sum = ratings.reduce(
 		(total, item) => total + (item.rate?.rating || 0),
 		0
@@ -215,14 +223,15 @@ BarbersSchema.methods.updateRating = async function (): Promise<void> {
 
 	const rating = Math.max(0, Math.min(5, rounded));
 
-	await barber.updateOne({ rating }, {}, { new: true });
+	await barber.updateOne({ rating });
 
 	await barber.save();
 };
 
 BarbersSchema.statics.updateLiveInfo = async function (
 	barber_id: string,
-	data?: Object
+	data?: Object,
+	notify?: NotificationMessageType
 ): Promise<void> {
 	const updatedBarber = await this.findById(barber_id);
 
@@ -236,7 +245,7 @@ BarbersSchema.statics.updateLiveInfo = async function (
 			...data,
 		});
 
-		if (updatedBarber.open) {
+		if (updatedBarber.open && notify) {
 			const customersOrFavorites = await UsersModel.find({
 				$or: [
 					{ favorites: updatedBarber._id },
@@ -255,7 +264,7 @@ BarbersSchema.statics.updateLiveInfo = async function (
 						.to(customer._id.toString())
 						.emit(SocketUrls.NewNotification, {
 							notification: {
-								message: "BARBER_IS_ON" as NotificationMessageType,
+								message: notify,
 								data: {
 									barber: updatedBarber,
 								},

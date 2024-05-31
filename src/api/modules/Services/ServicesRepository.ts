@@ -17,7 +17,7 @@ class ServicesRepository {
 				filter.barber = query.barberId;
 			}
 
-			if (query.additional) {
+			if (Object.keys(query).includes("additional")) {
 				filter.additional = query.additional;
 			}
 

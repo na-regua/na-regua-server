@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { HttpException } from "../HttpException/HttpException";
-import { SYSTEM_ERRORS } from "..";
+import { SYSTEM_ERRORS, TWILIO_ERRORS } from "..";
 
 function errorHandler(err: any, res: Response): Response {
 	if (err instanceof HttpException) {
@@ -11,7 +11,11 @@ function errorHandler(err: any, res: Response): Response {
 	console.log(`**ERROR**: ${err.message}`);
 
 	const message: string = err.message;
-	
+
+	if (message && TWILIO_ERRORS.some((el) => el === message)) {
+		return res.status(400).json({ message: `TWILIO.${err.message}` });
+	}
+
 	if (message && message.includes("Invalid parameter `To`")) {
 		return res
 			.status(400)

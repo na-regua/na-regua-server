@@ -1,1 +1,0 @@
-'use strict';Object.defineProperty(exports,'__esModule',{value:true});exports.QueueTicketsController=void 0;const index_1=require('../../../core/index');class QueueTicketsController extends index_1.BaseController{constructor(){super();}defineRoutes(){}}exports.QueueTicketsController=QueueTicketsController;
