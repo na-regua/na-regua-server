@@ -111,6 +111,7 @@ class QueueRepository {
 				code,
 				serviceId: service_id,
 				additionalServicesId: additional_services_id,
+				override,
 			} = req.body;
 
 			const service = await ServicesModel.findById(service_id);
@@ -133,7 +134,6 @@ class QueueRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_IS_CLOSED);
 			}
 
-			// Check if user has a ticket in queue
 			const { today, next_day } = getTodayAndNextTo(1);
 
 			const queue = await QueueModel.findBarberTodayQueue(
@@ -147,7 +147,9 @@ class QueueRepository {
 			// Check if user is already in queue
 			await queue.populate("tickets");
 
-			const user_already_on_queue = (queue.tickets as any[]).find(
+			const user_already_on_queue: ITicketsDocument = (
+				queue.tickets as any[]
+			).find(
 				(ticket: any) =>
 					(ticket as ITicketsDocument).customer._id.toString() ===
 					user._id.toString()
@@ -155,13 +157,13 @@ class QueueRepository {
 
 			if (
 				user_already_on_queue &&
-				((user_already_on_queue as ITicketsDocument).status === "queue" ||
-					(user_already_on_queue as ITicketsDocument).status === "scheduled")
+				(user_already_on_queue.status === "queue" ||
+					user_already_on_queue.status === "scheduled")
 			) {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_ALREADY_IN_QUEUE);
 			}
 			// Check if user is in other queue
-			const isOnQueue = await TicketsModel.findOne({
+			const is_in_other_queue = await TicketsModel.findOne({
 				customer: user._id,
 				type: "queue",
 				status: {
@@ -173,18 +175,24 @@ class QueueRepository {
 				},
 			});
 
-			if (isOnQueue) {
+			if (is_in_other_queue && !override) {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_ALREADY_IN_OTHER_QUEUE);
 			}
+
+			// If user want's to override, delete the old ticket
+			if (override) {
+				await is_in_other_queue?.deleteOne();
+			}
+
 			// Check if user is already a customer in barber
 			const is_customer = barber.customers.find(
 				(customer) => customer._id.toString() === user._id.toString()
 			);
-			// Calculate position
+			// Calculate the position (0 if user is not a customer)
 			const customer_position = is_customer
 				? (await QueueModel.findLastPosition(queue._id)) + 1
 				: 0;
-			// Create ticket for queue
+			// Create the ticket for queue
 			const ticket = await TicketsModel.create({
 				queue: {
 					queue_dto: queue._id,
