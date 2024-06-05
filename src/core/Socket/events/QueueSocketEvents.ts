@@ -37,14 +37,19 @@ export class QueueSocketEvents {
 		this.socket.on(SocketUrls.WorkerJoinQueueChannels, () =>
 			this.worker_join_queue_channels()
 		);
+		this.socket.on(SocketUrls.WorkerLeaveQueueChannels, () =>
+			this.worker_leave_queue()
+		);
 
-		this.socket.on(SocketUrls.WorkerPauseQueue, () => this.workerPauseQueue());
+		this.socket.on(SocketUrls.WorkerPauseQueue, () =>
+			this.worker_pause_queue()
+		);
 		this.socket.on(SocketUrls.WorkerResumeQueue, () =>
-			this.workerResumeQueue()
+			this.worker_resume_queue()
 		);
 	}
 
-	async getQueueDataByUserWorker(): Promise<{
+	private async get_queue_and_worker(): Promise<{
 		queue: IQueueDocument;
 		worker: IWorkerDocument;
 	} | null> {
@@ -53,7 +58,6 @@ export class QueueSocketEvents {
 		const worker = await WorkersModel.findById(workerId);
 
 		if (!worker) {
-			this.globalIo.emitEvent(this.socket, "WORKER_NOT_FOUND");
 			return null;
 		}
 
@@ -62,8 +66,6 @@ export class QueueSocketEvents {
 		);
 
 		if (!queue) {
-			this.globalIo.emitEvent(this.socket, "QUEUE_NOT_FOUND");
-
 			return null;
 		}
 
@@ -102,13 +104,13 @@ export class QueueSocketEvents {
 
 	// Worker left queue channels
 	private async worker_join_queue_channels() {
-		const getQueue = await this.getQueueDataByUserWorker();
+		const queue_and_worker = await this.get_queue_and_worker();
 
-		if (!getQueue) {
+		if (!queue_and_worker) {
 			return;
 		}
 
-		const { queue, worker } = getQueue;
+		const { queue, worker } = queue_and_worker;
 
 		// Join queue room
 		await this.socket.join(queue._id.toString());
@@ -119,11 +121,26 @@ export class QueueSocketEvents {
 	}
 
 	// Worker leave queue
-	private workerLeaveQueue() {}
+	private async worker_leave_queue() {
+		const queue_and_worker = await this.get_queue_and_worker();
+
+		if (!queue_and_worker) {
+			return;
+		}
+
+		const { queue, worker } = queue_and_worker;
+
+		// Leave queue room
+		await this.socket.leave(queue._id.toString());
+		// Leave worker room
+		await this.socket.leave(worker._id.toString());
+		// Leave barber room
+		await this.socket.leave(worker.barber._id.toString());
+	}
 
 	// Worker serve customer
-	private async workerServeCustomer() {
-		const getQueue = await this.getQueueDataByUserWorker();
+	private async worker_serve_customer() {
+		const getQueue = await this.get_queue_and_worker();
 
 		if (!getQueue) {
 			return;
@@ -132,8 +149,8 @@ export class QueueSocketEvents {
 		const { queue, worker } = getQueue;
 	}
 	// Worker miss customer
-	private async workerMissCustomer() {
-		const getQueue = await this.getQueueDataByUserWorker();
+	private async worker_miss_customer() {
+		const getQueue = await this.get_queue_and_worker();
 
 		if (!getQueue) {
 			return;
@@ -141,15 +158,15 @@ export class QueueSocketEvents {
 
 		const { queue, worker } = getQueue;
 	}
-	// Worker approve customer request
+	// Worker finish queue
 
 	// Worker deny customer request
 
 	// Worker finish queue
-	private workerFinishQueue() {}
+	private async worker_finish_queue(data: any) {}
 	// Worker pause queue
-	private async workerPauseQueue() {
-		const getQueue = await this.getQueueDataByUserWorker();
+	private async worker_pause_queue() {
+		const getQueue = await this.get_queue_and_worker();
 
 		if (!getQueue) {
 			return;
@@ -175,8 +192,8 @@ export class QueueSocketEvents {
 		}
 	}
 	// Worker resume queue
-	private async workerResumeQueue() {
-		const getQueue = await this.getQueueDataByUserWorker();
+	private async worker_resume_queue() {
+		const getQueue = await this.get_queue_and_worker();
 
 		if (!getQueue) {
 			return;

@@ -10,14 +10,14 @@ class QueueController extends BaseController {
 	defineRoutes(): void {
 		this.router.get(ENDPOINTS.QUEUE_LIST, QueueRepository.index);
 		this.router.get(
-			ENDPOINTS.QUEUE_GET_TODAY,
+			ENDPOINTS.QUEUE_BARBER_TODAY,
 			AuthRepository.is_authenticated,
 			AuthRepository.is_barber_worker,
 			QueueRepository.get_today_queue
 		);
 
 		this.router.get(
-			ENDPOINTS.QUEUE_BARBER_TODAY,
+			ENDPOINTS.QUEUE_BARBER_TODAY_BY_ID,
 			AuthRepository.is_authenticated,
 			QueueRepository.get_today_queue_by_barber_id
 		);
@@ -60,6 +60,13 @@ class QueueController extends BaseController {
 			ENDPOINTS.QUEUE_USER_LEAVE,
 			AuthRepository.is_authenticated,
 			QueueRepository.user_leave_queue
+		);
+
+		this.router.put(
+			ENDPOINTS.QUEUE_WORKER_GO_NEXT,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
+			QueueRepository.worker_go_next_ticket
 		);
 	}
 }

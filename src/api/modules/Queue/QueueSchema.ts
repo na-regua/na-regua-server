@@ -27,6 +27,10 @@ const QueueSchema = new Schema(
 			ref: "Barbers",
 			required: true,
 		},
+		current_position: {
+			type: Number,
+			default: 1,
+		},
 		schedules: {
 			type: [Schema.Types.ObjectId],
 			ref: "Tickets",
@@ -118,10 +122,10 @@ QueueSchema.methods.populateAll = async function () {
 };
 
 QueueSchema.statics.findLastPosition = async function (
-	queueId: string
+	queue_id: string
 ): Promise<number> {
 	const model: IQueueModel = this as IQueueModel;
-	const queue = await model.findById(queueId);
+	const queue = await model.findById(queue_id);
 
 	await queue?.populateAll();
 
@@ -137,12 +141,16 @@ QueueSchema.statics.findLastPosition = async function (
 		return bigger;
 	}
 
+	if (!tickets || tickets.length === 0) {
+		return queue?.current_position ? queue?.current_position - 1 : 0;
+	}
+
 	return 0;
 };
 
 QueueSchema.statics.findBarberTodayQueue = async function (
-	barberId?: string,
-	otherParams?: FilterQuery<IQueueDocument>
+	barber_id: string,
+	other_params?: FilterQuery<IQueueDocument>
 ): Promise<IQueueDocument | null> {
 	const model: IQueueModel = this as IQueueModel;
 	const { next_day, today } = getTodayAndNextTo(1);
@@ -153,14 +161,11 @@ QueueSchema.statics.findBarberTodayQueue = async function (
 			$gte: today,
 			$lt: next_day,
 		},
-		...otherParams,
+		barber: barber_id,
+		...other_params,
 	};
 
-	if (barberId) {
-		params.barber = barberId;
-	}
-
-	const queue = (await model.findOne(params)) as IQueueDocument;
+	const queue = await model.findOne(params);
 
 	await queue?.populateAll();
 
@@ -170,8 +175,11 @@ QueueSchema.statics.findBarberTodayQueue = async function (
 interface IQueueMethods {}
 
 interface IQueueModel extends Model<IQueueDocument, {}, IQueueMethods> {
-	findLastPosition: (queueId: string) => Promise<number>;
-	findBarberTodayQueue(barberId: string): Promise<IQueueDocument | null>;
+	findLastPosition: (queue_id: string) => Promise<number>;
+	findBarberTodayQueue(
+		barber_id: string,
+		other_params?: FilterQuery<IQueueDocument>
+	): Promise<IQueueDocument | null>;
 	findQueueByCode(code: string): Promise<IQueueDocument | null>;
 }
 

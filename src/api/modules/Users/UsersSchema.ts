@@ -30,6 +30,7 @@ const UsersSchema = new mongoose.Schema(
 			unique: true,
 			trim: true,
 			lowercase: true,
+			required: false,
 			validate: [isEmail, SYSTEM_ERRORS.INVALID_EMAIL],
 		},
 		password: {
