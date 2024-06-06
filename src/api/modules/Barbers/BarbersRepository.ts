@@ -12,7 +12,10 @@ import { BarbersModel, IBarberDocument, TBarber } from "./BarbersSchema";
 class BarbersRepository {
 	async list(req: Request, res: Response): Promise<Response<TBarber>> {
 		try {
-			const { search } = req.query;
+			const { search} = req.query;
+
+			const limit = req.query.limit || 20;
+			const offset = req.query.offset || 0;
 
 			let filter_query: FilterQuery<IBarberDocument> = {};
 
@@ -31,7 +34,10 @@ class BarbersRepository {
 				}
 			}
 
-			const barbers = await BarbersModel.find(filter_query);
+			const total = await BarbersModel.find(filter_query).countDocuments();
+			const barbers = await BarbersModel.find(filter_query)
+				.limit(+limit)
+				.skip(+offset);
 
 			await Promise.all(
 				barbers.map(async (barber) => {
@@ -40,7 +46,7 @@ class BarbersRepository {
 				})
 			);
 
-			return res.status(200).json(barbers);
+			return res.status(200).json({ content: barbers, total, limit, offset});
 		} catch (error) {
 			return errorHandler(error, res);
 		}

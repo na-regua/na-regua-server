@@ -22,7 +22,7 @@ export enum ENDPOINTS {
 	 * */
 	TICKETS_CREATE = "/tickets/",
 	TICKETS_LIST = "/tickets/",
-	TICKETS_BY_USER_TODAY = "/tickets/user/today",
+	TICKETS_USER_TODAY_TICKETS = "/tickets/user/today",
 	TICKETS_BY_USER = "/tickets/user",
 	TICKETS_RATE = "/tickets/:ticketId/rate",
 	/**

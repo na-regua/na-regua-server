@@ -1,6 +1,12 @@
-import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
+import {
+	HttpException,
+	SYSTEM_ERRORS,
+	SocketUrls,
+	errorHandler,
+} from "@core/index";
 import { getTodayAndNextTo } from "@utils/date";
 import { Request, Response } from "express";
+import { GlobalSocket } from "../../../app";
 import { BarbersModel } from "../Barbers";
 import { IUserDocument } from "../Users";
 import { TicketsModel } from "./TicketsSchema";
@@ -34,13 +40,13 @@ class TicketsRepository {
 		}
 	}
 
-	async byUserToday(req: Request, res: Response) {
+	async user_today_tickets(req: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
 
 			const { today, next_day } = getTodayAndNextTo(1);
 
-			const queueTicket = await TicketsModel.findOne({
+			const queue_ticket = await TicketsModel.findOne({
 				customer: user._id,
 				type: "queue",
 				status: {
@@ -52,7 +58,7 @@ class TicketsRepository {
 				},
 			});
 
-			const todayScheduleTicket = await TicketsModel.find({
+			const schedule_ticket = await TicketsModel.find({
 				customer: user._id,
 				type: "schedule",
 				status: {
@@ -64,11 +70,11 @@ class TicketsRepository {
 				},
 			});
 
-			await queueTicket?.populateAll();
+			await queue_ticket?.populateAll();
 
 			return res.status(200).json({
-				queue: queueTicket,
-				todaySchedule: todayScheduleTicket,
+				queue: queue_ticket,
+				schedules: schedule_ticket,
 			});
 		} catch (error) {
 			return errorHandler(error, res);
@@ -82,7 +88,7 @@ class TicketsRepository {
 			const user: IUserDocument = res.locals.user;
 
 			const { ticketId } = req.params;
-			const { rating, comment } = req.body;
+			const { rating, comment, on_queue } = req.body;
 
 			const ticket = await TicketsModel.findById(ticketId);
 
@@ -100,12 +106,25 @@ class TicketsRepository {
 				throw new HttpException(404, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
 
-			await ticket.updateOne({
-				rate: {
-					rating,
-					comment,
+			const updated_ticket = await TicketsModel.findByIdAndUpdate(
+				ticket._id,
+				{
+					rate: {
+						rating,
+						comment,
+					},
 				},
-			});
+				{ new: true }
+			);
+
+			if (on_queue && updated_ticket) {
+				await updated_ticket.populateAll();
+
+				GlobalSocket.io
+					.to(updated_ticket._id.toString())
+					.emit(SocketUrls.GetTicket, { ticket: updated_ticket });
+			}
+
 			await barber.updateRating();
 
 			return res.status(200).json();
