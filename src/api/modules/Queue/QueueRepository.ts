@@ -79,6 +79,8 @@ class QueueRepository {
 
 			const queue = await QueueModel.findBarberTodayQueue(barber._id);
 
+			await queue?.populateAll();
+
 			return res.status(200).json({ queue });
 		} catch (error) {
 			return errorHandler(error, res);

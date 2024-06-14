@@ -89,6 +89,7 @@ QueueSchema.methods.populateAll = async function () {
 		populate: [
 			{ path: "customer", populate: { path: "avatar" } },
 			{ path: "service" },
+			{ path: "additional_services" },
 		],
 		options: {
 			sort: {
