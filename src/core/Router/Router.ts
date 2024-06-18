@@ -4,7 +4,6 @@ import {
 	FilesController,
 	NotificationController,
 	QueueController,
-	QueueTicketsController,
 	TicketsController,
 	UsersController,
 	WorkersController,
@@ -33,7 +32,6 @@ class Router {
 			new QueueController(),
 			new TicketsController(),
 			new NotificationController(),
-			new QueueTicketsController(),
 			new SchedulesController(),
 		];
 

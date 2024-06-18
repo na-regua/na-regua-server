@@ -683,7 +683,6 @@ class QueueRepository {
 				.emit(SocketUrls.GetTicket, { ticket: updated_ticket });
 
 			// Emit serve event to customer
-
 			await worker.populate("user barber");
 			GlobalSocket.emitGlobalEvent(
 				updated_ticket._id.toString(),
@@ -694,7 +693,6 @@ class QueueRepository {
 			);
 
 			// Emit serve event to other queue workers
-
 			await updated_queue.populate("workers");
 
 			const other_queue_workers = (updated_queue.workers as any[]).filter(
@@ -710,7 +708,7 @@ class QueueRepository {
 				});
 			}
 
-			// Emit queue data to queue workers
+			// Emit queue data to  queue listeners
 			GlobalSocket.io
 				.to(updated_queue._id.toString())
 				.emit(SocketUrls.GetQueue, { queue: updated_queue });
@@ -720,6 +718,245 @@ class QueueRepository {
 			await BarbersModel.updateLiveInfo(barber._id.toString(), {
 				queue: updated_queue,
 			});
+
+			// Emit event to next customer
+
+			const next_queue_ticket = await TicketsModel.findOne({
+				barber: barber._id.toString(),
+				status: "queue",
+				$or: [
+					{
+						"queue.position": updated_queue.current_position,
+					},
+					{
+						"queue.position": {
+							$gt: updated_queue.current_position,
+						},
+					},
+				],
+				"queue.queue_dto": queue._id.toString(),
+			}).sort("queue.position");
+
+			if (next_queue_ticket) {
+				await next_queue_ticket?.populateAll();
+
+				GlobalSocket.emitGlobalEvent(
+					next_queue_ticket._id.toString(),
+					"USER_IS_NEXT"
+				);
+			}
+
+			return res.status(204).json(null);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async worker_miss_ticket(req: Request, res: Response) {
+		try {
+			const worker: IWorkerDocument = res.locals.worker;
+			const barber: IBarberDocument = res.locals.barber;
+
+			// get queue
+			const queue = await QueueModel.findBarberTodayQueue(
+				barber._id.toString()
+			);
+
+			if (!queue) {
+				throw new HttpException(400, SYSTEM_ERRORS.QUEUE_NOT_FOUND);
+			}
+
+			// check if worker is in queue
+			if (
+				!queue.workers.some((qw) => qw._id.toString() === worker._id.toString())
+			) {
+				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_IN_QUEUE);
+			}
+			// get ticket
+			const { ticketId: ticket_id } = req.params;
+
+			const ticket = await TicketsModel.findById(ticket_id);
+
+			if (!ticket) {
+				throw new HttpException(400, SYSTEM_ERRORS.TICKET_NOT_FOUND);
+			}
+
+			const current_ticket = await queue.findCurrentTicket();
+			const is_current_ticket =
+				current_ticket?._id.toString() === ticket._id.toString();
+
+			// check if ticket is on queue
+			if (
+				!queue.tickets.some((t) => t._id.toString() === ticket._id.toString())
+			) {
+				throw new HttpException(400, SYSTEM_ERRORS.TICKET_NOT_IN_QUEUE);
+			}
+			// update ticket status to missed
+			const new_status = "missed";
+
+			const updated_ticket = await TicketsModel.findByIdAndUpdate(
+				ticket._id.toString(),
+				{ status: new_status, missedAt: new Date(), missedBy: worker._id },
+				{ new: true }
+			);
+
+			if (!updated_ticket) {
+				throw new HttpException(400, SYSTEM_ERRORS.TICKET_NOT_FOUND);
+			}
+
+			// emit notification to missed customer
+			await worker.populateAll();
+
+			GlobalSocket.emitGlobalEvent(
+				updated_ticket.customer._id.toString(),
+				"WORKER_MISSED_TICKET",
+				{
+					worker,
+					barber,
+				}
+			);
+
+			await updated_ticket.populateAll();
+
+			GlobalSocket.io
+				.to(updated_ticket._id.toString())
+				.emit(SocketUrls.GetTicket, {
+					ticket: updated_ticket,
+				});
+			// update queue tickets
+
+			queue.tickets = queue.tickets.filter(
+				(t) => t._id.toString() !== updated_ticket._id.toString()
+			);
+
+			queue.misseds.push(updated_ticket._id.toString());
+
+			await queue.save();
+
+			// emit notification to other workers
+			await queue.populateAll();
+
+			const other_queue_workers = (queue.workers as any[]).filter(
+				(w) => w._id.toString() !== worker._id.toString()
+			);
+
+			if (other_queue_workers.length > 0) {
+				other_queue_workers.forEach((w: IWorkerDocument) => {
+					GlobalSocket.emitGlobalEvent(w._id.toString(), "TICKET_MISSED", {
+						customer: updated_ticket.customer,
+						worker,
+					});
+				});
+			}
+			// emit queue data to queue listeners
+
+			GlobalSocket.io
+				.to(queue._id.toString())
+				.emit(SocketUrls.GetQueue, { queue });
+			// update barber live info
+
+			await BarbersModel.updateLiveInfo(barber._id.toString(), {
+				queue,
+			});
+
+			// if it's current ticket, emit event to next customer
+			if (is_current_ticket) {
+				const next_queue_ticket = await queue.findCurrentTicket();
+
+				if (next_queue_ticket) {
+					await next_queue_ticket.populateAll();
+
+					GlobalSocket.emitGlobalEvent(
+						next_queue_ticket._id.toString(),
+						"USER_IS_NEXT"
+					);
+				}
+			}
+
+			return res.status(204).json(null);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async worker_finish_queue(req: Request, res: Response) {
+		try {
+			const worker: IWorkerDocument = res.locals.worker;
+			const barber: IBarberDocument = res.locals.barber;
+
+			const queue = await QueueModel.findBarberTodayQueue(
+				barber._id.toString()
+			);
+
+			if (!queue) {
+				throw new HttpException(400, SYSTEM_ERRORS.QUEUE_NOT_FOUND);
+			}
+
+			if (
+				!queue.workers.some((qw) => qw._id.toString() === worker._id.toString())
+			) {
+				throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_IN_QUEUE);
+			}
+
+			const onQueueTickets = queue.tickets;
+
+			// Update all tickets to missed
+			queue.tickets = [];
+			queue.misseds = queue.misseds.concat(onQueueTickets);
+
+			await Promise.all(
+				onQueueTickets.map(async (onQueueTicketId) => {
+					const onQueueTicket = await TicketsModel.findByIdAndUpdate(
+						onQueueTicketId._id.toString(),
+						{
+							status: "missed",
+							missedAt: new Date(),
+							missedBy: worker._id.toString(),
+						},
+						{ new: true }
+					);
+
+					// Emit notification to missed customer
+					if (onQueueTicket) {
+						await worker.populate("user barber");
+
+						GlobalSocket.emitGlobalEvent(
+							onQueueTicket.customer._id.toString(),
+							"QUEUE_FINISHED",
+							{
+								worker,
+							}
+						);
+					}
+				})
+			);
+			// Set queue status to off
+			queue.status = "off";
+
+			await queue.save();
+
+			// Emit notification other workers
+			const other_queue_workers = queue.workers.filter(
+				(w) => w._id.toString() !== worker._id.toString()
+			);
+
+			if (other_queue_workers.length > 0) {
+				other_queue_workers.forEach((w) => {
+					GlobalSocket.emitGlobalEvent(w._id.toString(), "QUEUE_FINISHED", {
+						worker,
+					});
+				});
+			}
+
+			// Emit queue data to queue listeners
+			await queue.populateAll();
+
+			GlobalSocket.io
+				.to(queue._id.toString())
+				.emit(SocketUrls.GetQueue, { queue });
+
+			// Update barber live info
+			await BarbersModel.updateLiveInfo(barber._id.toString(), { queue });
 
 			return res.status(204).json(null);
 		} catch (error) {

@@ -25,6 +25,8 @@ export enum ENDPOINTS {
 	TICKETS_USER_TODAY_TICKETS = "/tickets/user/today",
 	TICKETS_BY_USER = "/tickets/user",
 	TICKETS_RATE = "/tickets/:ticketId/rate",
+	TICKETS_HISTORY = "/tickets/history",
+
 	/**
 	 * Files
 	 * */
@@ -47,8 +49,8 @@ export enum ENDPOINTS {
 	 * */
 	QUEUE_CREATE = "/queues/",
 	QUEUE_LIST = "/queues/",
-	QUEUE_BARBER_TODAY = '/queues/today',
-  QUEUE_BARBER_TODAY_BY_ID = '/queues/:barberId/today',
+	QUEUE_BARBER_TODAY = "/queues/today",
+	QUEUE_BARBER_TODAY_BY_ID = "/queues/:barberId/today",
 	QUEUE_LAST_POSITION = "/queues/:queueId/last-position",
 	QUEUE_USER_JOIN = "/queues/join/user",
 	QUEUE_WORKER_JOIN = "/queues/join/worker",
@@ -56,6 +58,8 @@ export enum ENDPOINTS {
 	QUEUE_USER_LEAVE = "/queues/leave/:ticketId",
 	QUEUE_WORKER_REJECT_TICKET = "/queues/worker/reject/:ticketId",
 	QUEUE_WORKER_GO_NEXT = "/queues/worker/go-next",
+	QUEUE_WORKER_MISS_TICKET = "/queues/worker/miss/:ticketId",
+	QUEUE_WORKER_FINISH_QUEUE = "/queues/worker/finish",
 
 	/**
 	 * Schedules

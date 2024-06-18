@@ -3,7 +3,7 @@ import { HttpException } from "@core/HttpException/HttpException";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { SYSTEM_ERRORS } from "@core/index";
 import { Request, Response } from "express";
-import { IBarberDocument } from "../Barbers";
+import { BarbersModel, IBarberDocument } from "../Barbers";
 import { IUserDocument } from "../Users";
 import { FilesModel, TFile, TUploadedFile } from "./FilesSchema";
 
@@ -89,6 +89,8 @@ class FilesRepository {
 
 			const updatedFile = await FilesModel.findById(avatarId);
 
+			await BarbersModel.updateLiveInfo(barber._id.toString());
+
 			return res.status(200).json(updatedFile);
 		} catch (error) {
 			return errorHandler(error, res);
@@ -145,6 +147,8 @@ class FilesRepository {
 					thumbs: thumbId,
 				},
 			});
+
+			await BarbersModel.updateLiveInfo(barber._id.toString());
 
 			return res.status(201).json(null);
 		} catch (error) {

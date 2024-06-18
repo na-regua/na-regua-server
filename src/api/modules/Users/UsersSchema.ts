@@ -8,7 +8,6 @@ import { Model, model } from "mongoose";
 
 import isEmail from "validator/lib/isEmail";
 import TwilioClient from "../Twilio/Twilio.client";
-import { errorHandler } from "@core/index";
 
 const uniqueValidator = require("mongoose-unique-validator");
 

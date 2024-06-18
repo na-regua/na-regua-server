@@ -92,7 +92,7 @@ class BarbersRepository {
 
 			await barber.updateOne(body);
 
-			await BarbersModel.updateLiveInfo(barber._id.toString(), {});
+			await BarbersModel.updateLiveInfo(barber._id.toString());
 
 			return res.status(204).json(null);
 		} catch (error) {

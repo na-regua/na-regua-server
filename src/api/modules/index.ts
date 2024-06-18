@@ -7,4 +7,3 @@ export * from "./Queue";
 export * from "./Services";
 export * from "./Users";
 export * from "./Workers";
-export * from "./QueueTickets";

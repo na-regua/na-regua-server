@@ -10,6 +10,12 @@ export class TicketsController extends BaseController {
 	defineRoutes(): void {
 		this.router.get(ENDPOINTS.TICKETS_LIST, TicketsRepository.index);
 		this.router.get(
+			ENDPOINTS.TICKETS_HISTORY,
+			AuthRepository.is_authenticated,
+			TicketsRepository.list_by_user
+		);
+
+		this.router.get(
 			ENDPOINTS.TICKETS_USER_TODAY_TICKETS,
 			AuthRepository.is_authenticated,
 			TicketsRepository.user_today_tickets

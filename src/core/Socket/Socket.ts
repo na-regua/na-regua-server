@@ -28,30 +28,26 @@ class SocketServer {
 
 		this.io.engine.use(sessionMiddleware);
 		this.io.engine.use(async (req: any, res: any, next: any) => {
-			const isHandshake = req._query.sid === undefined;
-			if (!isHandshake) {
-				return next();
-			}
-			let token = req.headers.authorization;
-			if (!token) {
-				return next(new HttpException(403, SYSTEM_ERRORS.TOKEN_NOT_FOUND));
-			}
-			token = token.replace("Bearer", "").trim();
-			const user = await UsersModel.findByToken(token);
+			try {
+				const isHandshake = req._query.sid === undefined;
 
-			if (user instanceof HttpException) {
-				throw user;
+				if (!isHandshake) {
+					return next();
+				}
+				let token = req.headers.authorization;
+
+				token = token.replace("Bearer", "").trim();
+				const user = await UsersModel.findByToken(token);
+
+				await user.populate("avatar");
+
+				req.session.user = user;
+				req.session.save();
+
+				next();
+			} catch (error) {
+				throw new HttpException(400, SYSTEM_ERRORS.UNAUTHORIZED);
 			}
-
-			await user.populate("avatar");
-			if (!user) {
-				return next(new HttpException(400, SYSTEM_ERRORS.UNAUTHORIZED));
-			}
-
-			req.session.user = user;
-			req.session.save();
-
-			next();
 		});
 
 		this.onConnection();

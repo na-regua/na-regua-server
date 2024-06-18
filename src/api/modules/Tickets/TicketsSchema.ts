@@ -11,6 +11,7 @@ import { IQueueDocument } from "../Queue";
 import { IServiceDocument } from "../Services";
 import { IUserDocument } from "../Users";
 import { IWorkerDocument } from "../Workers";
+import { max } from "date-fns";
 
 const QueueDataSchema = new Schema(
 	{
@@ -63,6 +64,8 @@ const RatingSchema = new Schema(
 		},
 		comment: {
 			type: String,
+			maxLength: 124,
+			minLength: 5,
 		},
 	},
 	{ versionKey: false, _id: false, timestamps: true }
@@ -130,7 +133,11 @@ const TicketsSchema = new Schema(
 
 type TTicket = InferSchemaType<typeof TicketsSchema>;
 
-interface ITicketsDocument extends TTicket, Document {}
+interface ITicketsMethods {
+	populateAll(): Promise<ITicketsDocument>;
+}
+
+interface ITicketsDocument extends TTicket, Document, ITicketsMethods {}
 
 interface ITicketsPopulated
 	extends Omit<
@@ -146,10 +153,6 @@ interface ITicketsPopulated
 		date: Date;
 	};
 	served_by: IWorkerDocument;
-}
-
-interface ITicketsMethods {
-	populateAll(): Promise<ITicketsDocument>;
 }
 
 TicketsSchema.statics.getSchedules = async function (

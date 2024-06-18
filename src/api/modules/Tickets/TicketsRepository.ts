@@ -6,10 +6,11 @@ import {
 } from "@core/index";
 import { getTodayAndNextTo } from "@utils/date";
 import { Request, Response } from "express";
+import { FilterQuery } from "mongoose";
 import { GlobalSocket } from "../../../app";
 import { BarbersModel } from "../Barbers";
 import { IUserDocument } from "../Users";
-import { TicketsModel } from "./TicketsSchema";
+import { ITicketsDocument, TicketsModel } from "./TicketsSchema";
 
 class TicketsRepository {
 	async index(req: Request, res: Response) {
@@ -128,6 +129,40 @@ class TicketsRepository {
 			await barber.updateRating();
 
 			return res.status(200).json();
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async list_by_user(req: Request, res: Response) {
+		try {
+			const user: IUserDocument = res.locals.user;
+
+			const { search } = req.query;
+			let offset = Number(req.query.offset) || 0;
+			const limit = Number(req.query.limit) || 0;
+
+			const filter_query: FilterQuery<ITicketsDocument> = {
+				customer: user._id.toString(),
+				status: "served",
+			};
+
+			const tickets = await TicketsModel.find(filter_query)
+				.sort({ createdAt: -1 })
+				.limit(offset);
+
+			const total = await TicketsModel.find(filter_query).countDocuments();
+
+			const has_more = total - offset > 0;
+			const next = offset + limit < total || has_more;
+
+			await Promise.all(
+				tickets.map(async (ticket) => {
+					await ticket.populateAll();
+				})
+			);
+
+			return res.status(200).json({ tickets, total, offset, limit, next });
 		} catch (error) {
 			return errorHandler(error, res);
 		}

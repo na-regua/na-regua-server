@@ -7,7 +7,7 @@ import {
 	Schema,
 	model,
 } from "mongoose";
-import { ITicketsDocument } from "../Tickets";
+import { ITicketsDocument, TicketsModel } from "../Tickets";
 const uniqueValidator = require("mongoose-unique-validator");
 
 const QueueSchema = new Schema(
@@ -72,6 +72,7 @@ interface IQueueDocument extends TQueue, Document {
 	populateAll(): Promise<void>;
 	hasTicketOnQueue(ticketId: string): boolean;
 	hasWorkerOnQueue(workerId: string): boolean;
+	findCurrentTicket(): Promise<ITicketsDocument | undefined>;
 }
 
 QueueSchema.plugin(uniqueValidator, { message: "{PATH} já está em uso." });
@@ -94,10 +95,11 @@ QueueSchema.methods.populateAll = async function () {
 		options: {
 			sort: {
 				approved: 1,
-				position: 0,
+				"queue.position": 1,
 			},
 		},
 	});
+
 	// await queue.populate({
 	// 	path: "serveds",
 	// 	populate: { path: ticketPopulatePath },
@@ -120,6 +122,29 @@ QueueSchema.methods.populateAll = async function () {
 	// 		},
 	// 	},
 	// });
+};
+
+QueueSchema.methods.findCurrentTicket = async function (): Promise<ITicketsDocument | undefined> {
+	const queue = this as IQueueDocument;
+
+	await queue.populateAll();
+
+	const ticket = await TicketsModel.findOne({
+		status: "queue",
+		$or: [
+			{
+				"queue.position": queue.current_position,
+			},
+			{
+				"queue.position": {
+					$gt: queue.current_position,
+				},
+			},
+		],
+		"queue.queue_dto": queue._id.toString(),
+	}) as ITicketsDocument;
+
+	return ticket;
 };
 
 QueueSchema.statics.findLastPosition = async function (

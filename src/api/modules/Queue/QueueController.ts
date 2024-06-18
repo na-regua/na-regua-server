@@ -68,6 +68,20 @@ class QueueController extends BaseController {
 			AuthRepository.is_barber_worker,
 			QueueRepository.worker_go_next_ticket
 		);
+
+		this.router.post(
+			ENDPOINTS.QUEUE_WORKER_FINISH_QUEUE,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
+			QueueRepository.worker_finish_queue
+		);
+
+		this.router.put(
+			ENDPOINTS.QUEUE_WORKER_MISS_TICKET,
+			AuthRepository.is_authenticated,
+			AuthRepository.is_barber_worker,
+			QueueRepository.worker_miss_ticket
+		);
 	}
 }
 

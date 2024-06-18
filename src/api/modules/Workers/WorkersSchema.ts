@@ -23,9 +23,15 @@ const WorkersSchema = new mongoose.Schema(
 
 type TWorker = InferSchemaType<typeof WorkersSchema>;
 
-interface IWorkerDocument extends TWorker, Document {}
+interface IWorkerMethods {
+	populateAll(): Promise<IWorkerDocument>;
+}
+interface IWorkerDocument extends TWorker, Document, IWorkerMethods {}
 
-interface IWorkerMethods {}
+WorkersSchema.methods.populateAll = async function (this: IWorkerDocument) {
+	await this.populate("barber user");
+	return this;
+};
 
 interface IWorkersModel extends Model<IWorkerDocument, {}, IWorkerMethods> {}
 

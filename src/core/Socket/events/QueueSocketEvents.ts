@@ -61,6 +61,8 @@ export class QueueSocketEvents {
 			return null;
 		}
 
+		await worker.populate("barber");
+
 		const queue = await QueueModel.findBarberTodayQueue(
 			worker.barber._id.toString()
 		);
@@ -83,6 +85,7 @@ export class QueueSocketEvents {
 
 			if (queue) {
 				this.socket.join(ticket._id.toString());
+				this.socket.join(queue._id.toString());
 			}
 		}
 	}
@@ -162,8 +165,6 @@ export class QueueSocketEvents {
 
 	// Worker deny customer request
 
-	// Worker finish queue
-	private async worker_finish_queue(data: any) {}
 	// Worker pause queue
 	private async worker_pause_queue() {
 		const getQueue = await this.get_queue_and_worker();
@@ -186,6 +187,7 @@ export class QueueSocketEvents {
 		// Emit queue data event to all workers
 		const updatedQueue = await QueueModel.findById(queue._id.toString());
 		if (updatedQueue) {
+			await updatedQueue.populateAll();
 			this.globalIo.io
 				.to(queue._id.toString())
 				.emit(SocketUrls.GetQueue, { queue: updatedQueue });
@@ -213,6 +215,7 @@ export class QueueSocketEvents {
 		// Emit queue data event to all workers
 		const updatedQueue = await QueueModel.findById(queue._id.toString());
 		if (updatedQueue) {
+			await updatedQueue.populateAll();
 			this.globalIo.io
 				.to(queue._id.toString())
 				.emit(SocketUrls.GetQueue, { queue: updatedQueue });
