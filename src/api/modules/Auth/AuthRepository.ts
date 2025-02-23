@@ -1,6 +1,12 @@
 import { HttpException, SYSTEM_ERRORS, errorHandler } from "@core/index";
 import { NextFunction, Request, Response } from "express";
+import { Recipient } from "mailersend";
 import { BarbersModel, TBarber } from "../Barbers";
+import {
+	generateAuthCode,
+	generateCodeTemplate,
+	sendMail,
+} from "../../../core/Mailer";
 import { TwilioRepository } from "../Twilio";
 import { IUserDocument, TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
@@ -77,7 +83,9 @@ class AuthRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
 			}
 
-			await user.updateOne({ verified: true });
+			if (!user.verified) {
+				await user.updateOne({ verified: true });
+			}
 			await user.populate("avatar");
 
 			const access_token = await user.generateAuthToken();
@@ -95,7 +103,11 @@ class AuthRepository {
 					throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 				}
 
-				if (user.role === "admin" && barber.phone === user.phone) {
+				if (
+					user.role === "admin" &&
+					barber.phone === user.phone &&
+					!barber.verified
+				) {
 					await barber.updateOne({ verified: true });
 				}
 
@@ -223,6 +235,98 @@ class AuthRepository {
 			}
 
 			return res.status(200).json(response);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async send_mail_code(req: Request, res: Response) {
+		try {
+			const { email } = req.body;
+
+			if (!email) {
+				throw new HttpException(400, SYSTEM_ERRORS.INVALID_EMAIL);
+			}
+
+			const user = await UsersModel.findByEmail(email);
+
+			if (!user) {
+				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+			}
+
+			const recipient = [new Recipient(email, user.name)];
+			const code = generateAuthCode();
+			const htmlStr = await generateCodeTemplate(user.name, code);
+
+			await user.updateOne({
+				login_code: code,
+			});
+
+			await sendMail(recipient, "Verificação de Email", "", htmlStr);
+
+			return res.status(200).json({ goToVerify: true });
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async verify_mail_code(req: Request, res: Response) {
+		try {
+			const { email, code } = req.body;
+
+			if (!email) {
+				throw new HttpException(400, SYSTEM_ERRORS.INVALID_EMAIL);
+			}
+
+			if (!code) {
+				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
+			}
+
+			const user = await UsersModel.findByEmail(email);
+
+			if (!user) {
+				throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+			}
+
+			if (user.login_code !== code) {
+				throw new HttpException(400, SYSTEM_ERRORS.INVALID_CODE);
+			}
+
+			if (!user.verified) {
+				await user.updateOne({ verified: true });
+			}
+
+			await user.populate("avatar");
+
+			const access_token = await user.generateAuthToken();
+
+			if (user.role === "admin" || user.role === "worker") {
+				const worker = await WorkersModel.findOne({ user: user._id });
+
+				if (!worker) {
+					throw new HttpException(400, SYSTEM_ERRORS.WORKER_NOT_FOUND);
+				}
+
+				const barber = await BarbersModel.findById(worker.barber);
+
+				if (!barber) {
+					throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+				}
+
+				if (
+					user.role === "admin" &&
+					barber.phone === user.phone &&
+					!barber.verified
+				) {
+					await barber.updateOne({ verified: true });
+				}
+
+				await barber.populateAll();
+
+				return res.status(200).json({ access_token, barber, user });
+			}
+
+			return res.status(200).json({ access_token, user });
 		} catch (error) {
 			return errorHandler(error, res);
 		}

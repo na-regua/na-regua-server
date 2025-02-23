@@ -94,6 +94,19 @@ const AttendanceSchema = new Schema(
 	{ versionKey: false, timestamps: false, _id: false }
 );
 
+export const defaultAttendanceConfig = {
+	workdays: ["mon", "tue", "wed", "thu", "fri"],
+	worktime: {
+		start: "08:00",
+		end: "17:00",
+	},
+	open_barber_auto: false,
+	open_queue_auto: false,
+	schedule_limit_days: 30,
+	schedules_by_day: 4,
+	schedule_times: [],
+};
+
 const BarbersSchema = new Schema(
 	{
 		name: {
@@ -142,6 +155,7 @@ const BarbersSchema = new Schema(
 		},
 		config: {
 			type: AttendanceSchema,
+			default: defaultAttendanceConfig,
 		},
 		open: {
 			type: Boolean,

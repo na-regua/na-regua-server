@@ -58,6 +58,8 @@ class QueueRepository {
 				workers: [worker._id],
 			});
 
+			await new_queue.populateAll();
+
 			// Update barber live info
 			await BarbersModel.updateLiveInfo(
 				barber._id.toString(),
@@ -192,7 +194,7 @@ class QueueRepository {
 			);
 			// Calculate the position (0 if user is not a customer)
 			const customer_position = is_customer
-				? (await QueueModel.findLastPosition(queue._id)) + 1
+				? (await QueueModel.findLastPosition(queue._id.toString())) + 1
 				: 0;
 			// Create the ticket for queue
 			const ticket = await TicketsModel.create({
@@ -460,11 +462,11 @@ class QueueRepository {
 				.emit(SocketUrls.GetQueue, { queue });
 
 			// Add user as customer
-			await barber.updateOne({
-				$push: {
-					customers: ticket.customer._id.toString(),
-				},
-			});
+			// await barber.updateOne({
+			// 	$push: {
+			// 		customers: ticket.customer._id.toString(),
+			// 	},
+			// });
 
 			// Update barber live info
 			await BarbersModel.updateLiveInfo(barber._id.toString(), {
@@ -693,7 +695,7 @@ class QueueRepository {
 			);
 
 			// Emit serve event to other queue workers
-			await updated_queue.populate("workers");
+			await updated_queue.populateAll();
 
 			const other_queue_workers = (updated_queue.workers as any[]).filter(
 				(w) => w._id.toString() !== worker._id.toString()
@@ -708,7 +710,7 @@ class QueueRepository {
 				});
 			}
 
-			// Emit queue data to  queue listeners
+			// Emit queue data to queue listeners
 			GlobalSocket.io
 				.to(updated_queue._id.toString())
 				.emit(SocketUrls.GetQueue, { queue: updated_queue });

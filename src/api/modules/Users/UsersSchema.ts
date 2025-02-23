@@ -48,6 +48,7 @@ const UsersSchema = new mongoose.Schema(
 			default: "customer",
 		},
 		access_token: String,
+		login_code: String,
 		verified: {
 			type: Boolean,
 			default: false,
@@ -129,6 +130,21 @@ UsersSchema.statics.findByPhone = async function (
 	return user;
 };
 
+UsersSchema.statics.findByEmail = async function (
+	email: string
+): Promise<IUserDocument> {
+	let UserModel = this;
+
+	const user = UserModel.findOne({ email });
+
+	if (!user) {
+		throw new HttpException(400, SYSTEM_ERRORS.USER_NOT_FOUND);
+	}
+
+	return user;
+};
+
+
 UsersSchema.statics.findByToken = async function (
 	token: string
 ): Promise<IUserDocument | HttpException> {
@@ -187,6 +203,7 @@ interface IUsersModel extends Model<IUserDocument> {
 	) => Promise<IUserDocument>;
 	findByPhone: (phone: string) => Promise<IUserDocument>;
 	findByToken: (token: string) => Promise<IUserDocument>;
+	findByEmail: (email: string) => Promise<IUserDocument>;
 }
 
 const UsersModel: IUsersModel = model<IUserDocument, IUsersModel>(

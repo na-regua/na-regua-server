@@ -7,15 +7,20 @@ import { FilesModel, IFileDocument, TUploadedFile } from "../Files/FilesSchema";
 import { ServicesModel } from "../Services";
 import { TUser, UsersModel } from "../Users";
 import { WorkersModel } from "../Workers";
-import { BarbersModel, IBarberDocument, TBarber } from "./BarbersSchema";
+import {
+	BarbersModel,
+	defaultAttendanceConfig,
+	IBarberDocument,
+	TBarber,
+} from "./BarbersSchema";
 
 class BarbersRepository {
 	async list(req: Request, res: Response): Promise<Response<TBarber>> {
 		try {
-			const { search} = req.query;
+			const { search } = req.query;
 
-			const limit = req.query.limit || 20;
-			const offset = req.query.offset || 0;
+			const limit = +(req.query.limit || 20);
+			const offset = +(req.query.offset || 0);
 
 			let filter_query: FilterQuery<IBarberDocument> = {};
 
@@ -46,7 +51,7 @@ class BarbersRepository {
 				})
 			);
 
-			return res.status(200).json({ content: barbers, total, limit, offset});
+			return res.status(200).json({ content: barbers, total, limit, offset });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -149,7 +154,7 @@ class BarbersRepository {
 			const barber: IBarberDocument = res.locals.barber;
 
 			await barber.updateOne({
-				profileStatus: "completed",
+				profile_status: "completed",
 			});
 
 			return res.status(204).json(null);

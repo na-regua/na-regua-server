@@ -3,6 +3,7 @@ import { HttpException } from "../HttpException/HttpException";
 import { SYSTEM_ERRORS, TWILIO_ERRORS } from "..";
 
 function errorHandler(err: any, res: Response): Response {
+	
 	if (err instanceof HttpException) {
 		console.log(`**ERROR**: [${err.status}] : ${err.message}`);
 		return res.status(err.status).json({ message: err.message });

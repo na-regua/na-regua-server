@@ -14,7 +14,7 @@ export class UsersController extends BaseController {
 		this.router.get(
 			ENDPOINTS.USERS_LIST_FAVORITES,
 			AuthRepository.is_authenticated,
-			UsersRepository.listFavorites
+			UsersRepository.list_favorites
 		);
 
 		this.router.post(

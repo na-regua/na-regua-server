@@ -6,3 +6,4 @@ export * from "./Socket/";
 export * from "./SystemErrors/SystemErrors";
 export * from "./errorHandler/errorHandler";
 export * from "./sessionMiddleware/sessionMiddleware";
+export * from "./Mailer";

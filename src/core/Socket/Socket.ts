@@ -46,7 +46,7 @@ class SocketServer {
 
 				next();
 			} catch (error) {
-				throw new HttpException(400, SYSTEM_ERRORS.UNAUTHORIZED);
+				return new HttpException(400, SYSTEM_ERRORS.UNAUTHORIZED);
 			}
 		});
 

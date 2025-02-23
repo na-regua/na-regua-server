@@ -18,6 +18,8 @@ export class AuthController extends BaseController {
 		);
 
 		this.router.post(ENDPOINTS.AUTH_SEND_CODE, AuthRepository.send_otp_code);
+		this.router.post(ENDPOINTS.AUTH_SEND_MAIL_CODE, AuthRepository.send_mail_code);
+		this.router.post(ENDPOINTS.AUTH_VERIFY_MAIL_CODE, AuthRepository.verify_mail_code);
 
 		this.router.get(
 			ENDPOINTS.AUTH_GET_CURRENT_USER,

@@ -6,6 +6,8 @@ export enum ENDPOINTS {
 	AUTH_VERIFY_CODE = "/auth/verify/code",
 	AUTH_SEND_CODE = "/auth/send/code",
 	AUTH_GET_CURRENT_USER = "/auth/me",
+	AUTH_SEND_MAIL_CODE = "/auth/send/mail-code",
+	AUTH_VERIFY_MAIL_CODE = "/auth/verify/mail-code",
 	/**
 	 * Barbers
 	 * */

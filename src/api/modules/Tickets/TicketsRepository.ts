@@ -128,7 +128,7 @@ class TicketsRepository {
 
 			await barber.updateRating();
 
-			return res.status(200).json();
+			return res.status(200).json({ ticket: updated_ticket });
 		} catch (error) {
 			return errorHandler(error, res);
 		}

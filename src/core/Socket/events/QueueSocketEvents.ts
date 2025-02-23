@@ -100,6 +100,7 @@ export class QueueSocketEvents {
 
 			if (queue) {
 				this.socket.leave(ticket._id.toString());
+				this.socket.leave(queue._id.toString());
 			}
 		}
 	}

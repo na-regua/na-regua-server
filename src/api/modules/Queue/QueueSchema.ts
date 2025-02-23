@@ -82,7 +82,7 @@ QueueSchema.methods.populateAll = async function () {
 
 	await queue.populate({
 		path: "workers",
-		populate: { path: "user" },
+		populate: { path: "user", populate: "avatar" },
 	});
 
 	await queue.populate({
@@ -124,12 +124,14 @@ QueueSchema.methods.populateAll = async function () {
 	// });
 };
 
-QueueSchema.methods.findCurrentTicket = async function (): Promise<ITicketsDocument | undefined> {
+QueueSchema.methods.findCurrentTicket = async function (): Promise<
+	ITicketsDocument | undefined
+> {
 	const queue = this as IQueueDocument;
 
 	await queue.populateAll();
 
-	const ticket = await TicketsModel.findOne({
+	const ticket = (await TicketsModel.findOne({
 		status: "queue",
 		$or: [
 			{
@@ -142,7 +144,7 @@ QueueSchema.methods.findCurrentTicket = async function (): Promise<ITicketsDocum
 			},
 		],
 		"queue.queue_dto": queue._id.toString(),
-	}) as ITicketsDocument;
+	})) as ITicketsDocument;
 
 	return ticket;
 };
@@ -155,9 +157,13 @@ QueueSchema.statics.findLastPosition = async function (
 
 	await queue?.populateAll();
 
-	const tickets: ITicketsDocument[] = ((queue?.tickets as any[]) || []).map(
-		(el) => el
-	);
+	const tickets = await TicketsModel.find({
+		_id: {
+			$in: queue?.tickets,
+		},
+		"queue.queue_dto": queue_id,
+		approved: true,
+	});
 
 	if (tickets && tickets.length > 0) {
 		const positions = tickets.map((el) => el.queue?.position || 0);

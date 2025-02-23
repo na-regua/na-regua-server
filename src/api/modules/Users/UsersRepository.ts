@@ -4,9 +4,9 @@ import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
 import { errorHandler } from "@core/errorHandler/errorHandler";
 import { Request, Response } from "express";
 import { IUserDocument, TUser, UsersModel } from ".";
+import { BarbersModel, TBarber } from "../Barbers";
 import { FilesModel, TUploadedFile } from "../Files";
 import { TwilioRepository } from "../Twilio";
-import { BarbersModel, TBarber } from "../Barbers";
 
 class UsersRepository {
 	async list(_: Request, res: Response): Promise<Response<TUser[]>> {
@@ -157,7 +157,7 @@ class UsersRepository {
 		}
 	}
 
-	async listFavorites(
+	async list_favorites(
 		req: Request,
 		res: Response
 	): Promise<Response<TBarber[]>> {
