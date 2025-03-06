@@ -4,6 +4,7 @@ import {
 	IWorkerDocument,
 	QueueModel,
 	TicketsModel,
+	TicketType,
 	WorkersModel,
 } from "@api/modules";
 import { Socket } from "socket.io";
@@ -80,7 +81,7 @@ export class QueueSocketEvents {
 
 		const ticket = await TicketsModel.findById(ticket_id);
 
-		if (ticket && ticket.type === "queue" && ticket.queue) {
+		if (ticket && ticket.type === TicketType.Queue && ticket.queue) {
 			const queue = await QueueModel.findById(ticket.queue.queue_dto);
 
 			if (queue) {
@@ -95,7 +96,7 @@ export class QueueSocketEvents {
 
 		const ticket = await TicketsModel.findById(ticket_id);
 
-		if (ticket && ticket.type === "queue" && ticket.queue) {
+		if (ticket && ticket.type === TicketType.Queue && ticket.queue) {
 			const queue = await QueueModel.findById(ticket.queue.queue_dto);
 
 			if (queue) {
@@ -142,26 +143,6 @@ export class QueueSocketEvents {
 		await this.socket.leave(worker.barber._id.toString());
 	}
 
-	// Worker serve customer
-	private async worker_serve_customer() {
-		const getQueue = await this.get_queue_and_worker();
-
-		if (!getQueue) {
-			return;
-		}
-
-		const { queue, worker } = getQueue;
-	}
-	// Worker miss customer
-	private async worker_miss_customer() {
-		const getQueue = await this.get_queue_and_worker();
-
-		if (!getQueue) {
-			return;
-		}
-
-		const { queue, worker } = getQueue;
-	}
 	// Worker finish queue
 
 	// Worker deny customer request
@@ -181,7 +162,7 @@ export class QueueSocketEvents {
 		});
 
 		// Emit events to room
-		this.globalIo.emitGlobalEvent(queue._id.toString(), "QUEUE_PAUSED", {
+		this.globalIo.emitQueueEvent(queue._id.toString(), "QUEUE_PAUSED", {
 			worker,
 		});
 
@@ -209,7 +190,7 @@ export class QueueSocketEvents {
 		});
 
 		// Emit events to room
-		this.globalIo.emitGlobalEvent(queue._id.toString(), "QUEUE_RESUMED", {
+		this.globalIo.emitQueueEvent(queue._id.toString(), "QUEUE_RESUMED", {
 			worker,
 		});
 

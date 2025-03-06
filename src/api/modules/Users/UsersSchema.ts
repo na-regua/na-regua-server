@@ -61,6 +61,10 @@ const UsersSchema = new mongoose.Schema(
 			type: [mongoose.Schema.Types.ObjectId],
 			ref: "Barbers",
 		},
+		muted: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	{
 		versionKey: false,
@@ -143,7 +147,6 @@ UsersSchema.statics.findByEmail = async function (
 
 	return user;
 };
-
 
 UsersSchema.statics.findByToken = async function (
 	token: string

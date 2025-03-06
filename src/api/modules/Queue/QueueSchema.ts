@@ -7,15 +7,21 @@ import {
 	Schema,
 	model,
 } from "mongoose";
-import { ITicketsDocument, TicketsModel } from "../Tickets";
+import { ITicketsDocument, TicketsModel, TicketStatus } from "../Tickets";
 const uniqueValidator = require("mongoose-unique-validator");
+
+export enum QueueStatus {
+	On = "on",
+	Off = "off",
+	Paused = "paused",
+}
 
 const QueueSchema = new Schema(
 	{
 		status: {
 			type: String,
-			enum: ["on", "off", "paused"],
-			default: "on",
+			enum: Object.values(QueueStatus),
+			default: QueueStatus.On,
 		},
 		workers: {
 			type: [Schema.Types.ObjectId],
@@ -132,7 +138,7 @@ QueueSchema.methods.findCurrentTicket = async function (): Promise<
 	await queue.populateAll();
 
 	const ticket = (await TicketsModel.findOne({
-		status: "queue",
+		status: TicketStatus.Queue,
 		$or: [
 			{
 				"queue.position": queue.current_position,

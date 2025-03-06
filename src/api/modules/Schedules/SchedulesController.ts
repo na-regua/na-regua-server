@@ -9,17 +9,16 @@ export class SchedulesController extends BaseController {
 
 	defineRoutes(): void {
 		this.router.get(
-			ENDPOINTS.SCHEDULES_LIST_BY_TOKEN,
+			ENDPOINTS.SCHEDULED_LIST_APPOINTMENTS,
 			AuthRepository.is_authenticated,
 			AuthRepository.is_admin,
-			SchedulesRepository.listByToken
+			SchedulesRepository.list_schedules_appointments
 		);
 
 		this.router.get(
-			ENDPOINTS.SCHEDULES_SCHEDULED_DAYS,
+			ENDPOINTS.SCHEDULES_LIST_AVAILABLE,
 			AuthRepository.is_authenticated,
-			AuthRepository.is_admin,
-			SchedulesRepository.listScheduledDates
+			SchedulesRepository.list_available
 		);
 
 		this.router.post(

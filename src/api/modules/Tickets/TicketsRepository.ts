@@ -10,7 +10,12 @@ import { FilterQuery } from "mongoose";
 import { GlobalSocket } from "../../../app";
 import { BarbersModel } from "../Barbers";
 import { IUserDocument } from "../Users";
-import { ITicketsDocument, TicketsModel } from "./TicketsSchema";
+import {
+	ITicketsDocument,
+	TicketsModel,
+	TicketStatus,
+	TicketType,
+} from "./TicketsSchema";
 
 class TicketsRepository {
 	async index(req: Request, res: Response) {
@@ -49,9 +54,9 @@ class TicketsRepository {
 
 			const queue_ticket = await TicketsModel.findOne({
 				customer: user._id,
-				type: "queue",
+				type: TicketStatus.Queue,
 				status: {
-					$in: ["pending", "queue"],
+					$in: [TicketStatus.Pending, TicketStatus.Queue],
 				},
 				"queue.date": {
 					$gte: today,
@@ -61,9 +66,9 @@ class TicketsRepository {
 
 			const schedule_ticket = await TicketsModel.find({
 				customer: user._id,
-				type: "schedule",
+				type: TicketType.Schedule,
 				status: {
-					$in: ["pending", "queue"],
+					$in: [TicketStatus.Pending, TicketStatus.Scheduled],
 				},
 				"schedule.date": {
 					$gte: today,

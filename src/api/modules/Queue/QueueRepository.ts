@@ -11,10 +11,15 @@ import { BarbersModel, IBarberDocument } from "../Barbers";
 import { NotificationMessageType } from "../Notifications";
 import NotificationsRepository from "../Notifications/NotificationsRepository";
 import { ServicesModel } from "../Services";
-import { ITicketsDocument, TicketsModel } from "../Tickets";
+import {
+	ITicketsDocument,
+	TicketsModel,
+	TicketStatus,
+	TicketType,
+} from "../Tickets";
 import { IUserDocument } from "../Users";
 import { IWorkerDocument } from "../Workers";
-import { QueueModel } from "./QueueSchema";
+import { QueueModel, QueueStatus } from "./QueueSchema";
 
 class QueueRepository {
 	async index(req: Request, res: Response) {
@@ -34,20 +39,20 @@ class QueueRepository {
 
 			const { today, next_day } = getTodayAndNextTo(1);
 
-			const has_created_queue_today = await QueueModel.findOne({
-				barber: barber._id.toString(),
-				createdAt: {
-					$gte: today,
-					$lt: next_day,
-				},
-			});
+			// const has_created_queue_today = await QueueModel.findOne({
+			// 	barber: barber._id.toString(),
+			// 	createdAt: {
+			// 		$gte: today,
+			// 		$lt: next_day,
+			// 	},
+			// });
 
-			if (has_created_queue_today) {
-				throw new HttpException(
-					400,
-					SYSTEM_ERRORS.QUEUE_CAN_CREATE_ONLY_ONE_PER_DAY
-				);
-			}
+			// if (has_created_queue_today) {
+			// 	throw new HttpException(
+			// 		400,
+			// 		SYSTEM_ERRORS.QUEUE_CAN_CREATE_ONLY_ONE_PER_DAY
+			// 	);
+			// }
 
 			if (!barber.open) {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_IS_CLOSED);
@@ -161,17 +166,17 @@ class QueueRepository {
 
 			if (
 				user_already_on_queue &&
-				(user_already_on_queue.status === "queue" ||
-					user_already_on_queue.status === "scheduled")
+				(user_already_on_queue.status === TicketStatus.Queue ||
+					user_already_on_queue.status === TicketStatus.Scheduled)
 			) {
 				throw new HttpException(400, SYSTEM_ERRORS.USER_ALREADY_IN_QUEUE);
 			}
 			// Check if user is in other queue
 			const is_in_other_queue = await TicketsModel.findOne({
 				customer: user._id,
-				type: "queue",
+				type: TicketType.Queue,
 				status: {
-					$in: ["pending", "queue"],
+					$in: [TicketStatus.Pending, TicketStatus.Queue],
 				},
 				"queue.date": {
 					$gte: today,
@@ -192,6 +197,7 @@ class QueueRepository {
 			const is_customer = barber.customers.find(
 				(customer) => customer._id.toString() === user._id.toString()
 			);
+
 			// Calculate the position (0 if user is not a customer)
 			const customer_position = is_customer
 				? (await QueueModel.findLastPosition(queue._id.toString())) + 1
@@ -203,12 +209,12 @@ class QueueRepository {
 					position: customer_position,
 					date: queue.createdAt,
 				},
-				type: "queue",
+				type: TicketType.Queue,
 				customer: user._id,
 				service: service._id,
 				barber: barber._id,
 				approved: !!is_customer,
-				status: is_customer ? "queue" : "pending",
+				status: is_customer ? TicketStatus.Queue : TicketStatus.Pending,
 				additional_services: additional_services.map((s) => s._id),
 			});
 
@@ -258,7 +264,7 @@ class QueueRepository {
 			}
 
 			// Check if ticket is queue
-			const is_queue_ticket = ticket.type === "queue";
+			const is_queue_ticket = ticket.type === TicketType.Queue;
 
 			if (is_queue_ticket && ticket && ticket.queue) {
 				let queue = await QueueModel.findById(
@@ -270,7 +276,7 @@ class QueueRepository {
 				}
 
 				// Update ticket status
-				const ticket_new_status = "missed";
+				const ticket_new_status = TicketStatus.Missed;
 
 				ticket = await TicketsModel.findByIdAndUpdate(
 					ticket._id.toString(),
@@ -401,7 +407,10 @@ class QueueRepository {
 			}
 
 			// Update ticket status
-			const newStatus = ticket.type === "queue" ? "queue" : "scheduled";
+			const newStatus =
+				ticket.type === TicketType.Queue
+					? TicketStatus.Queue
+					: TicketStatus.Scheduled;
 
 			const newPosition =
 				(await QueueModel.findLastPosition(queue._id.toString())) + 1;
@@ -430,7 +439,7 @@ class QueueRepository {
 				.emit(SocketUrls.GetTicket, { ticket: updated_ticket });
 
 			// Emit approve event to customer
-			GlobalSocket.emitGlobalEvent(
+			GlobalSocket.emitQueueEvent(
 				updated_ticket._id.toString(),
 				"WORKER_APPROVED_TICKET",
 				{
@@ -462,11 +471,11 @@ class QueueRepository {
 				.emit(SocketUrls.GetQueue, { queue });
 
 			// Add user as customer
-			// await barber.updateOne({
-			// 	$push: {
-			// 		customers: ticket.customer._id.toString(),
-			// 	},
-			// });
+			await barber.updateOne({
+				$push: {
+					customers: ticket.customer._id.toString(),
+				},
+			});
 
 			// Update barber live info
 			await BarbersModel.updateLiveInfo(barber._id.toString(), {
@@ -557,7 +566,7 @@ class QueueRepository {
 				.emit(SocketUrls.GetTicket, { ticket });
 
 			// Emit reject event to customer
-			GlobalSocket.emitGlobalEvent(
+			GlobalSocket.emitQueueEvent(
 				ticket._id.toString(),
 				"WORKER_REJECTED_TICKET",
 				{
@@ -621,7 +630,7 @@ class QueueRepository {
 
 			const ticket = await TicketsModel.findOne({
 				barber: barber._id.toString(),
-				status: "queue",
+				status: TicketStatus.Queue,
 				$or: [
 					{
 						"queue.position": queue.current_position,
@@ -649,7 +658,7 @@ class QueueRepository {
 			}
 
 			// Update ticket status
-			const new_status = "served";
+			const new_status = TicketStatus.Served;
 
 			const updated_ticket = await TicketsModel.findByIdAndUpdate(
 				ticket._id.toString(),
@@ -686,7 +695,7 @@ class QueueRepository {
 
 			// Emit serve event to customer
 			await worker.populate("user barber");
-			GlobalSocket.emitGlobalEvent(
+			GlobalSocket.emitQueueEvent(
 				updated_ticket._id.toString(),
 				"WORKER_SERVED_TICKET",
 				{
@@ -722,10 +731,9 @@ class QueueRepository {
 			});
 
 			// Emit event to next customer
-
 			const next_queue_ticket = await TicketsModel.findOne({
 				barber: barber._id.toString(),
-				status: "queue",
+				status: TicketStatus.Queue,
 				$or: [
 					{
 						"queue.position": updated_queue.current_position,
@@ -742,7 +750,7 @@ class QueueRepository {
 			if (next_queue_ticket) {
 				await next_queue_ticket?.populateAll();
 
-				GlobalSocket.emitGlobalEvent(
+				GlobalSocket.emitQueueEvent(
 					next_queue_ticket._id.toString(),
 					"USER_IS_NEXT"
 				);
@@ -794,7 +802,7 @@ class QueueRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.TICKET_NOT_IN_QUEUE);
 			}
 			// update ticket status to missed
-			const new_status = "missed";
+			const new_status = TicketStatus.Missed;
 
 			const updated_ticket = await TicketsModel.findByIdAndUpdate(
 				ticket._id.toString(),
@@ -809,7 +817,7 @@ class QueueRepository {
 			// emit notification to missed customer
 			await worker.populateAll();
 
-			GlobalSocket.emitGlobalEvent(
+			GlobalSocket.emitQueueEvent(
 				updated_ticket.customer._id.toString(),
 				"WORKER_MISSED_TICKET",
 				{
@@ -826,7 +834,6 @@ class QueueRepository {
 					ticket: updated_ticket,
 				});
 			// update queue tickets
-
 			queue.tickets = queue.tickets.filter(
 				(t) => t._id.toString() !== updated_ticket._id.toString()
 			);
@@ -851,7 +858,6 @@ class QueueRepository {
 				});
 			}
 			// emit queue data to queue listeners
-
 			GlobalSocket.io
 				.to(queue._id.toString())
 				.emit(SocketUrls.GetQueue, { queue });
@@ -868,7 +874,7 @@ class QueueRepository {
 				if (next_queue_ticket) {
 					await next_queue_ticket.populateAll();
 
-					GlobalSocket.emitGlobalEvent(
+					GlobalSocket.emitQueueEvent(
 						next_queue_ticket._id.toString(),
 						"USER_IS_NEXT"
 					);
@@ -885,10 +891,9 @@ class QueueRepository {
 		try {
 			const worker: IWorkerDocument = res.locals.worker;
 			const barber: IBarberDocument = res.locals.barber;
+			const { queueId } = req.params;
 
-			const queue = await QueueModel.findBarberTodayQueue(
-				barber._id.toString()
-			);
+			const queue = await QueueModel.findById(queueId);
 
 			if (!queue) {
 				throw new HttpException(400, SYSTEM_ERRORS.QUEUE_NOT_FOUND);
@@ -911,29 +916,36 @@ class QueueRepository {
 					const onQueueTicket = await TicketsModel.findByIdAndUpdate(
 						onQueueTicketId._id.toString(),
 						{
-							status: "missed",
+							status: TicketStatus.Missed,
 							missedAt: new Date(),
 							missedBy: worker._id.toString(),
 						},
 						{ new: true }
 					);
 
-					// Emit notification to missed customer
+					// Emit notification and ticket data to missed customer
 					if (onQueueTicket) {
 						await worker.populate("user barber");
+						await onQueueTicket.populateAll();
 
-						GlobalSocket.emitGlobalEvent(
+						GlobalSocket.emitQueueEvent(
 							onQueueTicket.customer._id.toString(),
 							"QUEUE_FINISHED",
 							{
 								worker,
 							}
 						);
+
+						GlobalSocket.io
+							.to(onQueueTicket._id.toString())
+							.emit(SocketUrls.GetTicket, {
+								ticket: onQueueTicket,
+							});
 					}
 				})
 			);
 			// Set queue status to off
-			queue.status = "off";
+			queue.status = QueueStatus.Off;
 
 			await queue.save();
 

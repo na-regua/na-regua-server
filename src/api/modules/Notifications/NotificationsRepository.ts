@@ -17,7 +17,7 @@ import {
 	populateNotifications,
 } from "./NotificationsSchema";
 
-class CustomerServicesRepository {
+class NotificationsRepository {
 	async index(req: Request, res: Response) {
 		try {
 			const user: IUserDocument = res.locals.user;
@@ -114,14 +114,14 @@ class CustomerServicesRepository {
 	}
 
 	async notify_barber_workers(
-		barberId: string,
+		barber_id: string,
 		message: NotificationMessageType,
 		data?: any,
 		icon?: string
 	) {
 		// Notify barber workers
 		let workers = await WorkersModel.find({
-			barber: barberId,
+			barber: barber_id,
 		});
 
 		if (!workers) {
@@ -199,7 +199,6 @@ class CustomerServicesRepository {
 		data?: any,
 		icon?: string
 	) {
-		// Notify barber workers
 		const user = await UsersModel.findById(user_id);
 		if (!user) {
 			return;
@@ -226,4 +225,4 @@ class CustomerServicesRepository {
 	}
 }
 
-export default new CustomerServicesRepository();
+export default new NotificationsRepository();

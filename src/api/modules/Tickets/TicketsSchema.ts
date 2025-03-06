@@ -6,12 +6,12 @@ import {
 	Schema,
 	model,
 } from "mongoose";
-import { IBarberDocument, getDayToWorkDays } from "../Barbers";
+import { IBarberDocument } from "../Barbers";
 import { IQueueDocument } from "../Queue";
 import { IServiceDocument } from "../Services";
 import { IUserDocument } from "../Users";
 import { IWorkerDocument } from "../Workers";
-import { max } from "date-fns";
+import { getDayToWorkDays, is_date_on_limit } from "@utils/date";
 
 const QueueDataSchema = new Schema(
 	{
@@ -71,6 +71,19 @@ const RatingSchema = new Schema(
 	{ versionKey: false, _id: false, timestamps: true }
 );
 
+enum TicketStatus {
+	Pending = "pending",
+	Queue = "queue",
+	Scheduled = "scheduled",
+	Missed = "missed",
+	Served = "served",
+}
+
+enum TicketType {
+	Queue = "queue",
+	Schedule = "schedule",
+}
+
 const TicketsSchema = new Schema(
 	{
 		customer: {
@@ -80,8 +93,8 @@ const TicketsSchema = new Schema(
 		},
 		status: {
 			type: String,
-			enum: ["pending", "queue", "scheduled", "missed", "served"],
-			default: "pending",
+			enum: Object.values(TicketStatus),
+			default: TicketStatus.Pending,
 		},
 		barber: {
 			type: Schema.Types.ObjectId,
@@ -90,7 +103,7 @@ const TicketsSchema = new Schema(
 		},
 		type: {
 			type: String,
-			enum: ["queue", "schedule"],
+			enum: Object.values(TicketType),
 			required: true,
 		},
 		service: {
@@ -155,7 +168,7 @@ interface ITicketsPopulated
 	served_by: IWorkerDocument;
 }
 
-TicketsSchema.statics.getSchedules = async function (
+TicketsSchema.statics.get_schedules = async function (
 	barber_id: string,
 	filters?: GetSchedulesFilters
 ) {
@@ -173,7 +186,6 @@ TicketsSchema.statics.getSchedules = async function (
 			const nextDay = new Date(fromDate);
 			nextDay.setDate(nextDay.getDate() + 1);
 
-			// For now it's filtering by date to 00:00 to 00:00 of the next day
 			filter["schedule.date"] = {
 				$gte: fromDate,
 			};
@@ -193,66 +205,86 @@ TicketsSchema.statics.getSchedules = async function (
 		}
 	}
 
-	const offset = filters?.offset || 0;
+	const offset = filters?.offset ?? 0;
 
 	const schedules = await this.find(filter).skip(offset);
 
 	return schedules;
 };
 
-TicketsSchema.statics.isValidScheduleDate = async function (
+TicketsSchema.statics.is_valid_schedule_date = async function (
 	barber: IBarberDocument,
 	date: Date,
 	time: string
 ) {
 	// Check if the date is in barber limit days
-	const today = new Date();
+	const { work_days, schedule_limit_days } = barber.config;
 
-	const limit = barber.config?.schedule_limit_days || 30;
+	const limit = schedule_limit_days || 30;
 
-	const limitDate = new Date(today);
-	limitDate.setDate(limitDate.getDate() + limit);
+	const is_on_limit = is_date_on_limit(date, limit);
 
-	if (date < today || date > limitDate) {
+	if (!is_on_limit) {
+		console.log("out of limit");
 		return false;
 	}
 
 	// Check if the date is in the barber work days
-	const day = getDayToWorkDays[today.getDay()];
+	const day = getDayToWorkDays[date.getDay()];
 
 	if (!day) {
 		return false;
 	}
 
 	if (day) {
-		const isOnWorkDays = barber.config?.workdays.includes(day);
+		const is_on_work_days = work_days.includes(day);
 
-		if (!isOnWorkDays) {
+		if (!is_on_work_days) {
+			console.log("is not a work day");
 			return false;
 		}
 	}
 	// Check if time is on the barber schedule times
+	const schedule_times = barber.config.schedule_times;
+
+	if (!schedule_times.includes(time)) {
+		return false;
+	}
+
+	const is_today = new Date(date).getDate() === new Date().getDate();
+
+	// remove passed times
+	if (is_today) {
+		const now = new Date();
+		const nowTime = now.getHours() + now.getMinutes() / 60;
+		const [hours, minutes] = time.split(":").map(Number);
+		const scheduleTime = hours + minutes / 60;
+
+		if (scheduleTime < nowTime) {
+			return false;
+		}
+	}
 
 	// Check if the barber has a schedule in this date/time
-	const fromDate = new Date(date);
-	const toDate = new Date(date);
-	toDate.setDate(toDate.getDate() + 1);
+	const from_date = new Date(date);
+	const to_date = new Date(date);
+	to_date.setDate(to_date.getDate() + 1);
 
-	const hasOnThisTime = await this.find({
+	const has_appointments = await this.find({
 		barber: barber._id,
-		type: "schedule",
+		type: TicketType.Schedule,
 		"schedule.date": {
-			$gte: fromDate,
-			$lt: toDate,
+			$gte: from_date,
+			$lt: to_date,
 		},
 		"schedule.time": time,
 	});
 
-	if (hasOnThisTime.length > 0) {
+	if (has_appointments.length > 0) {
 		return false;
 	}
 
-	return false;
+	return true;
 };
 
 TicketsSchema.methods.populateAll = async function () {
@@ -279,12 +311,12 @@ interface GetSchedulesFilters {
 }
 
 interface ITicketsModel extends Model<ITicketsDocument, {}, ITicketsMethods> {
-	isValidScheduleDate(
+	is_valid_schedule_date(
 		barber: IBarberDocument,
 		date: Date,
 		time: string
 	): Promise<boolean>;
-	getSchedules(
+	get_schedules(
 		barber_id: string,
 		filters?: GetSchedulesFilters
 	): Promise<ITicketsDocument[]>;
@@ -300,5 +332,7 @@ export {
 	ITicketsDocument,
 	ITicketsPopulated,
 	TTicket,
+	TicketStatus,
+	TicketType,
 	TicketsModel,
 };

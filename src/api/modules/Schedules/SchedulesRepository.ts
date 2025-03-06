@@ -4,54 +4,65 @@ import { BarbersModel, IBarberDocument } from "../Barbers";
 import { NotificationMessageType } from "../Notifications";
 import NotificationsRepository from "../Notifications/NotificationsRepository";
 import { ServicesModel } from "../Services";
-import { GetSchedulesFilters, TicketsModel } from "../Tickets";
+import { GetSchedulesFilters, TicketsModel, TicketType } from "../Tickets";
 import { IUserDocument } from "../Users";
+import { apply_timezone, remove_timezone } from "@utils/date";
 
 export class SchedulesRepository {
-	async listByToken(req: Request, res: Response) {
+	async list_schedules_appointments(req: Request, res: Response) {
 		try {
-			//TODO - Add pagination
 			const barber: IBarberDocument = res.locals.barber;
+			const { from, to, customer_id } = req.query;
 
-			const from = req.query.from as string;
-			const to = req.query.to as string;
+			const from_date = from
+				? apply_timezone(new Date(from as string))
+				: undefined;
+			const to_date = to ? apply_timezone(new Date(to as string)) : undefined;
 
 			const filter: GetSchedulesFilters = {
-				from,
-				to,
+				from: from_date,
+				to: to_date,
 			};
-			const scheduleTickets = await TicketsModel.getSchedules(
+
+			if (customer_id) {
+				filter.customer_id = customer_id as string;
+			}
+
+			const schedule_tickets = await TicketsModel.get_schedules(
 				barber._id,
 				filter
 			);
 
-			return res.status(200).json({ schedules: scheduleTickets });
+			return res.status(200).json({ schedules: schedule_tickets });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
 	}
 
-	async listScheduledDates(req: Request, res: Response) {
+	async list_available(req: Request, res: Response) {
 		try {
-			const barber: IBarberDocument = res.locals.barber;
+			const { barberId, from, to } = req.query;
 
-			const barberLimit = barber.config?.schedule_limit_days || 30;
-			const fromDate = new Date();
-			const limitDate = new Date(fromDate);
-			limitDate.setDate(limitDate.getDate() + barberLimit);
+			const barber = await BarbersModel.findById(barberId);
 
-			const filters: GetSchedulesFilters = {
-				from: fromDate,
-				to: limitDate,
-			};
+			if (!barber) {
+				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
+			}
 
-			const schedules = await TicketsModel.getSchedules(barber._id, filters);
+			const { schedule_limit_days } = barber.config;
+			const today = remove_timezone(new Date());
+			const limit = remove_timezone(new Date(today));
+			limit.setDate(limit.getDate() + schedule_limit_days);
 
-			const scheduledDates = schedules.map(
-				(schedule) => schedule.schedule?.date
+			const from_date = from ? apply_timezone(new Date(from as string)) : today;
+			const to_date = to ? apply_timezone(new Date(to as string)) : limit;
+
+			const available_schedules = await barber.get_available_schedules(
+				from_date,
+				to_date
 			);
 
-			return res.status(200).json({ scheduledDates });
+			return res.status(200).json({ available_schedules });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -68,7 +79,7 @@ export class SchedulesRepository {
 			if (!barber) {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
-			
+
 			const service = await ServicesModel.findOne({
 				barber: barberId,
 				_id: serviceId,
@@ -78,29 +89,32 @@ export class SchedulesRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.SERVICE_NOT_FOUND);
 			}
 			// verify if its a valid date and time
-			const isDateValid = await TicketsModel.isValidScheduleDate(
+
+			const d = apply_timezone(new Date(date));
+			const is_valid_schedule_date = await TicketsModel.is_valid_schedule_date(
 				barber,
-				date,
+				d,
 				time
 			);
 
-			if (!isDateValid) {
+			if (!is_valid_schedule_date) {
 				throw new HttpException(400, SYSTEM_ERRORS.INVALID_SCHEDULE_DATE);
 			}
 
-			const isCustomer = barber.customers.find(
-				(customerId) => customerId.toString() === user._id.toString()
+			const is_customer = barber.customers.some(
+				(customer_id) => customer_id.toString() === user._id.toString()
 			);
 
 			const schedule = await TicketsModel.create({
 				customer: user._id,
 				barber: barberId,
 				service: serviceId,
-				approved: isCustomer,
-				status: isCustomer ? "scheduled" : "pending",
-				type: "schedule",
+				additional_services: [],
+				approved: is_customer,
+				status: is_customer ? "scheduled" : "pending",
+				type: TicketType.Schedule,
 				schedule: {
-					date,
+					date: d,
 					time,
 				},
 			});
@@ -110,7 +124,7 @@ export class SchedulesRepository {
 			}
 
 			// Notify barber workers
-			const messageType: NotificationMessageType = isCustomer
+			const messageType: NotificationMessageType = is_customer
 				? "CUSTOMER_SCHEDULED_APPOINTMENT"
 				: "USER_ASK_TO_SCHEDULE";
 

@@ -2,7 +2,7 @@ import { MailerSend, Sender, Recipient, EmailParams } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
 
 export const MailApi = new MailerSend({
-	apiKey: process.env.MAILER_API_KEY || "",
+	apiKey: process.env.MAILER_API_KEY ?? "",
 });
 
 export const MailApiDomain = new Sender(
@@ -20,8 +20,8 @@ export async function sendMail(
 		.setFrom(MailApiDomain)
 		.setTo(to)
 		.setSubject(subject)
-		.setHtml(html || "")
-		.setText(text || "");
+		.setHtml(html ?? "")
+		.setText(text ?? "");
 
 	return await MailApi.email.send(emailParams);
 }

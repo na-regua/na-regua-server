@@ -85,6 +85,15 @@ class SocketServer {
 
 		this.io.to(room).emit(SocketUrls.Event, eventData);
 	}
+
+	emitQueueEvent(room: string, event: ISocketEventType, data?: any): void {
+		const eventData: ISocketEvent = {
+			event,
+			data,
+		};
+
+		this.io.to(room).emit(SocketUrls.QueueEvent, eventData);
+	}
 }
 
 export { SocketServer };

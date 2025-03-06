@@ -2,11 +2,17 @@ import { Model, model } from "mongoose";
 
 import { SocketUrls } from "@core/Socket";
 import { SYSTEM_ERRORS } from "@core/SystemErrors/SystemErrors";
-import { GlobalSocket } from "../../../app";
+import {
+	getDayToWorkDays,
+	getTodayAndNextTo,
+	is_from_to_on_limit,
+} from "@utils/date";
 import { Document, InferSchemaType, Schema } from "mongoose";
+import { GlobalSocket } from "../../../app";
 import { NotificationMessageType } from "../Notifications";
-import { TicketsModel } from "../Tickets";
+import { TicketsModel, TicketStatus, TicketType } from "../Tickets";
 import { UsersModel } from "../Users";
+import { AvailableScheduleDate } from "./BarbersModel";
 
 const uniqueValidator = require("mongoose-unique-validator");
 
@@ -42,24 +48,14 @@ const AddressSchema = new Schema(
 	{ versionKey: false, timestamps: false, _id: false }
 );
 
-const getDayToWorkDays: Record<number, string> = {
-	0: "sun",
-	1: "mon",
-	2: "tue",
-	3: "wed",
-	4: "thu",
-	5: "fri",
-	6: "sat",
-};
-
 const AttendanceSchema = new Schema(
 	{
-		workdays: {
+		work_days: {
 			type: [String],
 			enum: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
 			default: ["mon", "tue", "wed", "thu", "fri"],
 		},
-		worktime: {
+		work_time: {
 			start: {
 				type: String,
 				default: "08:00",
@@ -95,8 +91,8 @@ const AttendanceSchema = new Schema(
 );
 
 export const defaultAttendanceConfig = {
-	workdays: ["mon", "tue", "wed", "thu", "fri"],
-	worktime: {
+	work_days: ["mon", "tue", "wed", "thu", "fri"],
+	work_time: {
 		start: "08:00",
 		end: "17:00",
 	},
@@ -183,6 +179,10 @@ type TBarber = InferSchemaType<typeof BarbersSchema>;
 interface IBarberDocument extends Document, TBarber {
 	populateAll(): Promise<IBarberDocument>;
 	updateRating(): Promise<void>;
+	get_available_schedules(
+		from: Date,
+		to: Date
+	): Promise<{ day: Date; schedules: string[] }[]>;
 }
 
 interface IBarberMethods {}
@@ -240,6 +240,85 @@ BarbersSchema.methods.updateRating = async function (): Promise<void> {
 	await barber.updateOne({ rating });
 
 	await barber.save();
+};
+
+BarbersSchema.methods.get_available_schedules = async function (
+	from: Date,
+	to: Date
+): Promise<AvailableScheduleDate[]> {
+	const barber = this as IBarberDocument;
+	const { work_days, schedule_times, schedule_limit_days, schedules_by_day } =
+		barber.config;
+	const available_schedules: AvailableScheduleDate[] = [];
+
+	while (from <= to) {
+		// Check if the date is in barber limit days
+		const is_on_limit = is_from_to_on_limit(
+			new Date(from),
+			new Date(to),
+			schedule_limit_days
+		);
+
+		// Check if the date is in the barber work days
+		const day = getDayToWorkDays[new Date(from).getDay()];
+		const is_on_work_days = work_days.includes(day);
+
+		// get appointments for this day
+		const { today: from_today, next_day: from_next_day } = getTodayAndNextTo(
+			1,
+			from
+		);
+		const appointments = await TicketsModel.find({
+			barber: barber._id,
+			type: TicketType.Schedule,
+			status: {
+				$in: [TicketStatus.Pending, TicketStatus.Scheduled],
+			},
+			"schedule.date": {
+				$gte: from_today,
+				$lt: from_next_day,
+			},
+		});
+
+		// fill available schedules
+		if (is_on_limit && is_on_work_days) {
+			const available_day_schedules: AvailableScheduleDate = {
+				date: new Date(from),
+				schedules: schedule_times,
+			};
+			const is_today = new Date(from).getDate() === new Date().getDate();
+
+			// remove passed times
+			if (is_today) {
+				const now = new Date();
+				const nowTime = now.getHours() + now.getMinutes() / 60;
+
+				available_day_schedules.schedules = schedule_times.filter((time) => {
+					const [hour, minute] = time.split(":");
+					const timeValue = parseInt(hour) + parseInt(minute) / 60;
+					return timeValue > nowTime;
+				});
+			}
+
+			if (appointments.length > 0) {
+				const scheduled_times = appointments.map(
+					(appointment) => appointment?.schedule?.time ?? ""
+				);
+
+				available_day_schedules.schedules =
+					available_day_schedules.schedules.filter(
+						(time) => !scheduled_times.includes(time)
+					);
+			}
+
+			available_schedules.push(available_day_schedules);
+		}
+
+		// go to next day
+		from.setDate(from.getDate() + 1);
+	}
+
+	return available_schedules;
 };
 
 BarbersSchema.statics.updateLiveInfo = async function (
@@ -301,11 +380,4 @@ const BarbersModel: IBarbersModel = model<IBarberDocument, IBarbersModel>(
 	BarbersSchema
 );
 
-export {
-	BarbersModel,
-	BarbersSchema,
-	IBarberDocument,
-	IBarbersModel,
-	TBarber,
-	getDayToWorkDays,
-};
+export { BarbersModel, BarbersSchema, IBarberDocument, IBarbersModel, TBarber };

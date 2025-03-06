@@ -35,7 +35,7 @@ class Router {
 			new SchedulesController(),
 		];
 
-		controllers.map((controller) =>
+		controllers.forEach((controller) =>
 			this.app.use(this.apiPrefix, controller.router)
 		);
 	}

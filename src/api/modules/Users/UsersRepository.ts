@@ -41,7 +41,9 @@ class UsersRepository {
 
 			await user.populate("avatar", "-_id");
 
-			return res.status(201).json(user);
+			const access_token = await user.generateAuthToken();
+
+			return res.status(201).json({ user, access_token });
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -127,7 +129,7 @@ class UsersRepository {
 		}
 	}
 
-	async favoriteBarber(req: Request, res: Response): Promise<Response<null>> {
+	async favorite_barber(req: Request, res: Response): Promise<Response<null>> {
 		try {
 			const { barberId } = req.params;
 
@@ -139,9 +141,9 @@ class UsersRepository {
 				throw new HttpException(400, SYSTEM_ERRORS.BARBER_NOT_FOUND);
 			}
 
-			const isFavorite =
-				user.favorites &&
-				user.favorites.some((fav) => fav._id.toString() === barberId);
+			const isFavorite = user?.favorites.some(
+				(fav) => fav._id.toString() === barberId
+			);
 
 			if (isFavorite) {
 				await user.updateOne({ $pull: { favorites: barberId } });
@@ -173,6 +175,23 @@ class UsersRepository {
 			);
 
 			return res.status(200).json(barbers);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async mute_notifications(
+		req: Request,
+		res: Response
+	): Promise<Response<null>> {
+		try {
+			const user: IUserDocument = res.locals.user;
+
+			const { muted } = req.body;
+
+			await user.updateOne({ muted });
+
+			return res.status(204).json(null);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

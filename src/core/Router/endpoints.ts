@@ -61,14 +61,14 @@ export enum ENDPOINTS {
 	QUEUE_WORKER_REJECT_TICKET = "/queues/worker/reject/:ticketId",
 	QUEUE_WORKER_GO_NEXT = "/queues/worker/go-next",
 	QUEUE_WORKER_MISS_TICKET = "/queues/worker/miss/:ticketId",
-	QUEUE_WORKER_FINISH_QUEUE = "/queues/worker/finish",
+	QUEUE_WORKER_FINISH_QUEUE = "/queues/worker/finish/:queueId",
 
 	/**
 	 * Schedules
 	 * */
-	SCHEDULES_LIST_BY_TOKEN = "/schedules/",
+	SCHEDULES_LIST_AVAILABLE = "/schedules/available/",
 	SCHEDULES_CREATE = "/schedules/",
-	SCHEDULES_SCHEDULED_DAYS = "/schedules/scheduled-days",
+	SCHEDULED_LIST_APPOINTMENTS = "/schedules/appointments",
 	/**
 	 * Services
 	 * */
@@ -88,6 +88,7 @@ export enum ENDPOINTS {
 	USERS_DELETE = "/users/:id",
 	USERS_IS_ON_QUEUE = "/users/is-on/queue",
 	USERS_FAVORITE_BARBER = "/users/favorite/:barberId",
+	USERS_MUTE_NOTIFICATIONS = "/users/mute-notifications",
 
 	/**
 	 * Workers
