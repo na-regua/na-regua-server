@@ -12,9 +12,9 @@ import { BarbersModel } from "../Barbers";
 import { IUserDocument } from "../Users";
 import {
 	ITicketsDocument,
-	TicketsModel,
 	TicketStatus,
 	TicketType,
+	TicketsModel,
 } from "./TicketsSchema";
 
 class TicketsRepository {
@@ -64,11 +64,11 @@ class TicketsRepository {
 				},
 			});
 
-			const schedule_ticket = await TicketsModel.find({
+			const schedule_ticket = await TicketsModel.findOne({
 				customer: user._id,
 				type: TicketType.Schedule,
 				status: {
-					$in: [TicketStatus.Pending, TicketStatus.Scheduled],
+					$in: [TicketStatus.Scheduled],
 				},
 				"schedule.date": {
 					$gte: today,
@@ -77,10 +77,11 @@ class TicketsRepository {
 			});
 
 			await queue_ticket?.populateAll();
+			await schedule_ticket?.populateAll();
 
 			return res.status(200).json({
 				queue: queue_ticket,
-				schedules: schedule_ticket,
+				schedule: schedule_ticket,
 			});
 		} catch (error) {
 			return errorHandler(error, res);

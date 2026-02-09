@@ -21,6 +21,12 @@ export class SchedulesController extends BaseController {
 			SchedulesRepository.list_available
 		);
 
+		this.router.get(
+			ENDPOINTS.SCHEDULES_BY_USER,
+			AuthRepository.is_authenticated,
+			SchedulesRepository.list_by_user
+		);
+
 		this.router.post(
 			ENDPOINTS.SCHEDULES_CREATE,
 			AuthRepository.is_authenticated,

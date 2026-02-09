@@ -4,9 +4,16 @@ import { BarbersModel, IBarberDocument } from "../Barbers";
 import { NotificationMessageType } from "../Notifications";
 import NotificationsRepository from "../Notifications/NotificationsRepository";
 import { ServicesModel } from "../Services";
-import { GetSchedulesFilters, TicketsModel, TicketType } from "../Tickets";
+import {
+	GetSchedulesFilters,
+	ITicketsDocument,
+	TicketsModel,
+	TicketType,
+} from "../Tickets";
 import { IUserDocument } from "../Users";
 import { apply_timezone, remove_timezone } from "@utils/date";
+import { FilterQuery } from "mongoose";
+import { PaginatedResponse } from "@api/models";
 
 export class SchedulesRepository {
 	async list_schedules_appointments(req: Request, res: Response) {
@@ -62,7 +69,7 @@ export class SchedulesRepository {
 				to_date
 			);
 
-			return res.status(200).json({ available_schedules });
+			return res.status(200).json(available_schedules);
 		} catch (error) {
 			return errorHandler(error, res);
 		}
@@ -134,12 +141,48 @@ export class SchedulesRepository {
 				{
 					barber: barberId,
 					service: serviceId,
-					schedule: schedule._id,
+					ticket: schedule._id,
+					customer: user._id,
 				},
 				user.avatar._id.toString()
 			);
 
 			return res.status(201).json(schedule);
+		} catch (error) {
+			return errorHandler(error, res);
+		}
+	}
+
+	async list_by_user(req: Request, res: Response) {
+		try {
+			const user: IUserDocument = res.locals.user;
+			const { from, to, time, limit, offset, barberId } = req.query;
+
+			const filters: FilterQuery<ITicketsDocument> = {
+				type: TicketType.Schedule,
+				customer: user._id,
+			};
+
+			const tickets = await TicketsModel.find(filters)
+				.limit(+(limit || 0))
+				.skip(+(offset || 0));
+
+			const total = await TicketsModel.countDocuments(filters);
+
+			await Promise.all(
+				tickets.map(async (ticket) => {
+					await ticket.populateAll();
+				})
+			);
+
+			const paginated_res: PaginatedResponse<ITicketsDocument> = {
+				content: tickets,
+				total,
+				limit: +(limit || 0) || undefined,
+				offset: +(limit || 0) || undefined,
+			};
+
+			return res.status(200).json(paginated_res);
 		} catch (error) {
 			return errorHandler(error, res);
 		}

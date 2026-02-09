@@ -48,6 +48,10 @@ const NotificationDataSchema = new Schema(
 			type: Schema.Types.ObjectId,
 			ref: "Workers",
 		},
+		ticket: {
+			type: Schema.Types.ObjectId,
+			ref: "Tickets",
+		},
 	},
 	{ _id: false, versionKey: false }
 );
@@ -98,6 +102,7 @@ export const populateNotifications = async function (
 			await notification.populate("data.service");
 			await notification.populate("data.user");
 			await notification.populate("data.customer");
+			await notification.populate("data.ticket");
 			await notification.populate({
 				path: "data.worker",
 				populate: { path: "user barber" },

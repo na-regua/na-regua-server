@@ -69,6 +69,7 @@ export enum ENDPOINTS {
 	SCHEDULES_LIST_AVAILABLE = "/schedules/available/",
 	SCHEDULES_CREATE = "/schedules/",
 	SCHEDULED_LIST_APPOINTMENTS = "/schedules/appointments",
+	SCHEDULES_BY_USER = "/schedules/user",
 	/**
 	 * Services
 	 * */

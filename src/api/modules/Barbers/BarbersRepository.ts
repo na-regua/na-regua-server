@@ -29,7 +29,7 @@ class BarbersRepository {
 					(search as string).toLocaleLowerCase()
 				);
 
-				if (search && typeof search === "string") {
+				if (typeof search === "string") {
 					filter_query = {
 						$or: [
 							{ name: { $regex: new RegExp("^" + cleaned_search, "i") } },

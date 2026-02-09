@@ -140,6 +140,8 @@ class NotificationsRepository {
 				return;
 			}
 
+			await populateNotifications([notification]);
+
 			// Emit socket
 			if (GlobalSocket.io) {
 				GlobalSocket.io

@@ -182,7 +182,7 @@ interface IBarberDocument extends Document, TBarber {
 	get_available_schedules(
 		from: Date,
 		to: Date
-	): Promise<{ day: Date; schedules: string[] }[]>;
+	): Promise<AvailableScheduleDate[]>;
 }
 
 interface IBarberMethods {}
@@ -311,7 +311,9 @@ BarbersSchema.methods.get_available_schedules = async function (
 					);
 			}
 
-			available_schedules.push(available_day_schedules);
+			if (available_day_schedules.schedules.length > 0) {
+				available_schedules.push(available_day_schedules);
+			}
 		}
 
 		// go to next day
